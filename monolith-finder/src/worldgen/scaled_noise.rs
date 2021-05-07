@@ -1,4 +1,5 @@
 use crate::noise::FractalNoise;
+use crate::noise::SampleJobImpl;
 use java_rand::Random;
 
 #[derive(Debug)]
@@ -21,7 +22,13 @@ impl ScaledNoise {
         let _ = FractalNoise::with_random_octaves(random, octaves);
     }
 
-    pub fn sample2d(&self, x: i32, z: i32, res_x: usize, res_z: usize) -> Box<[f64]> {
+    pub fn sample2d(
+        &self,
+        x: i32,
+        z: i32,
+        res_x: usize,
+        res_z: usize,
+    ) -> SampleJobImpl<Box<[f64]>> {
         self.sample3d(x, 0, z, res_x, 1, res_z)
     }
 
@@ -33,19 +40,17 @@ impl ScaledNoise {
         res_x: usize,
         res_y: usize,
         res_z: usize,
-    ) -> Box<[f64]> {
-        self.noise
-            .begin_sampling(
-                x,
-                y,
-                z,
-                res_x,
-                res_y,
-                res_z,
-                self.scale_x_z,
-                self.scale_y,
-                self.scale_x_z,
-            )
-            .sample_all()
+    ) -> SampleJobImpl<Box<[f64]>> {
+        self.noise.begin_sampling(
+            x,
+            y,
+            z,
+            res_x,
+            res_y,
+            res_z,
+            self.scale_x_z,
+            self.scale_y,
+            self.scale_x_z,
+        )
     }
 }

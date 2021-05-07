@@ -11,3 +11,7 @@ java-rand = "0.2"
 
 [dev-dependencies]
 assert_approx_eq = "1.1.0"
+
+[[bin]]
+name = "testbin"
+path = "src/bin.rs"

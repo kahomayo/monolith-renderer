@@ -9,6 +9,8 @@ pub struct PerlinNoise {
 }
 
 impl PerlinNoise {
+    pub const RESULT_RANGE: f64 = 1.0;
+
     pub fn with_random_permutations(random: &mut Random) -> Self {
         let x_offset = random.next_f64() * 256.0;
         let y_offset = random.next_f64() * 256.0;

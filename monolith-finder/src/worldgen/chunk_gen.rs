@@ -1,9 +1,8 @@
-use crate::noise::FractalNoise;
 use crate::worldgen::ScaledNoise;
 use java_rand::Random;
 
 #[derive(Debug)]
-struct ChunkGenerator {
+pub struct ChunkGenerator {
     hill_noise: ScaledNoise,
     depth_noise: ScaledNoise,
 }
@@ -22,5 +21,13 @@ impl ChunkGenerator {
             hill_noise,
             depth_noise,
         }
+    }
+
+    pub fn hill_noise(&self) -> &ScaledNoise {
+        &self.hill_noise
+    }
+
+    pub fn depth_noise(&self) -> &ScaledNoise {
+        &self.depth_noise
     }
 }

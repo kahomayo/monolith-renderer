@@ -1,7 +1,7 @@
 use crate::noise::PerlinNoise;
 
 use java_rand::Random;
-use std::borrow::BorrowMut;
+use std::borrow::{Borrow, BorrowMut};
 use std::ops::DerefMut;
 
 #[derive(Debug)]
@@ -32,8 +32,8 @@ impl FractalNoise {
         scale_x: f64,
         scale_y: f64,
         scale_z: f64,
-    ) -> SampleJob<Box<[f64]>> {
-        SampleJob {
+    ) -> SampleJobImpl<Box<[f64]>> {
+        SampleJobImpl {
             noise: self.octaves.as_ref(),
             applied_noises: 0,
             results: vec![0.0; res_x * res_y * res_z].into_boxed_slice(),
@@ -57,7 +57,26 @@ pub enum SamplingStatus {
     Done,
 }
 
-pub struct SampleJob<'a, TResult: DerefMut<Target = [f64]>> {
+pub trait SamplingJob {
+    fn sample_once(&mut self);
+    fn status(&self) -> SamplingStatus;
+    fn results(&self) -> &[f64];
+    fn results_mut(&mut self) -> &mut [f64];
+    fn remaining_steps(&self) -> usize;
+    fn remaining_variation(&self) -> f64;
+
+    fn is_done(&self) -> bool {
+        self.status() == SamplingStatus::Done
+    }
+
+    fn sample_n(&mut self, n: usize) {
+        for _ in 0..n {
+            self.sample_once()
+        }
+    }
+}
+
+pub struct SampleJobImpl<'a, TResult: DerefMut<Target = [f64]>> {
     noise: &'a [PerlinNoise],
     applied_noises: usize,
     results: TResult,
@@ -72,7 +91,7 @@ pub struct SampleJob<'a, TResult: DerefMut<Target = [f64]>> {
     scale_z: f64,
 }
 
-impl<'a, TResult: DerefMut<Target = [f64]>> SampleJob<'a, TResult> {
+impl<'a, TResult: DerefMut<Target = [f64]>> SampleJobImpl<'a, TResult> {
     pub fn new(
         noise: &'a [PerlinNoise],
         results: TResult,
@@ -108,36 +127,8 @@ impl<'a, TResult: DerefMut<Target = [f64]>> SampleJob<'a, TResult> {
         }
     }
 
-    pub fn sample_once(&mut self) {
-        if let Some(perlin_noise) = self.noise.get(self.applied_noises) {
-            let inv_intensity = f64::powi(2.0, self.applied_noises as i32);
-            perlin_noise.sample(
-                self.results.borrow_mut(),
-                self.x,
-                self.y,
-                self.z,
-                self.res_x,
-                self.res_y,
-                self.res_z,
-                self.scale_x,
-                self.scale_y,
-                self.scale_z,
-                inv_intensity,
-            );
-            self.applied_noises += 1;
-        }
-    }
-
-    pub fn status(&self) -> SamplingStatus {
-        match self.applied_noises {
-            0 => SamplingStatus::NotStarted,
-            x if x == self.noise.len() => SamplingStatus::Done,
-            _ => SamplingStatus::Started,
-        }
-    }
-
-    pub fn is_done(&self) -> bool {
-        self.status() == SamplingStatus::Done
+    pub fn into_results(self) -> TResult {
+        self.results
     }
 
     pub fn sample_all(mut self) -> TResult {
@@ -148,9 +139,55 @@ impl<'a, TResult: DerefMut<Target = [f64]>> SampleJob<'a, TResult> {
     }
 }
 
+impl<'a, TResult: DerefMut<Target = [f64]>> SamplingJob for SampleJobImpl<'a, TResult> {
+    fn sample_once(&mut self) {
+        if let Some(perlin_noise) = self.noise.get(self.applied_noises) {
+            let inv_intensity = 0.5_f64.powi(self.remaining_steps() as i32 - 1);
+            perlin_noise.sample(
+                self.results.borrow_mut(),
+                self.x,
+                self.y,
+                self.z,
+                self.res_x,
+                self.res_y,
+                self.res_z,
+                self.scale_x * inv_intensity,
+                self.scale_y * inv_intensity,
+                self.scale_z * inv_intensity,
+                inv_intensity,
+            );
+            self.applied_noises += 1;
+        }
+    }
+
+    fn status(&self) -> SamplingStatus {
+        match self.applied_noises {
+            0 => SamplingStatus::NotStarted,
+            x if x == self.noise.len() => SamplingStatus::Done,
+            _ => SamplingStatus::Started,
+        }
+    }
+
+    fn results(&self) -> &[f64] {
+        self.results.borrow()
+    }
+
+    fn results_mut(&mut self) -> &mut [f64] {
+        self.results.borrow_mut()
+    }
+
+    fn remaining_steps(&self) -> usize {
+        self.noise.len() - self.applied_noises
+    }
+
+    fn remaining_variation(&self) -> f64 {
+        (2.0_f64.powi(self.remaining_steps() as i32) - 1.0) * PerlinNoise::RESULT_RANGE
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::noise::fractal::FractalNoise;
+    use crate::noise::fractal::{FractalNoise, SamplingJob};
     use assert_approx_eq::assert_approx_eq;
     use java_rand::Random;
 
@@ -164,5 +201,54 @@ mod tests {
         let actual = noises[592];
 
         assert_approx_eq!(actual, EXPECTED, 1E-8);
+    }
+
+    #[test]
+    fn remaining_variation_0_of_1() {
+        RemainingVariationTest {
+            octaves: 1,
+            samples: 0,
+            expected: 1.0,
+        }
+        .run()
+    }
+
+    #[test]
+    fn remaining_variation_1_of_1() {
+        RemainingVariationTest {
+            octaves: 1,
+            samples: 1,
+            expected: 0.0,
+        }
+        .run()
+    }
+
+    #[test]
+    fn remaining_variation_0_of_2() {
+        RemainingVariationTest {
+            octaves: 2,
+            samples: 0,
+            expected: 3.0,
+        }
+        .run()
+    }
+
+    struct RemainingVariationTest {
+        octaves: usize,
+        samples: usize,
+        expected: f64,
+    }
+
+    impl RemainingVariationTest {
+        pub fn run(self) {
+            let noise = FractalNoise::with_random_octaves(&mut Random::new(0), self.octaves);
+            let mut job = noise.begin_sampling(0, 0, 0, 1, 1, 1, 1.0, 1.0, 1.0);
+
+            for _ in 0..self.samples {
+                job.sample_once();
+            }
+
+            assert_eq!(job.remaining_variation(), self.expected);
+        }
     }
 }
