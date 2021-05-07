@@ -1,3 +1,5 @@
+mod noise;
+
 #[cfg(test)]
 mod tests {
     #[test]
