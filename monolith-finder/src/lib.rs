@@ -1,4 +1,6 @@
-mod noise;
+pub mod finder;
+pub mod noise;
+pub mod worldgen;
 
 #[cfg(test)]
 mod tests {
