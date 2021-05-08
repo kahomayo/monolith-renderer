@@ -1,0 +1,30 @@
+{
+  "name": "monolith-renderer-app",
+  "version": "0.1.0",
+  "description": "display monoliths",
+  "main": "index.js",
+  "bin": {
+    "create-wasm-app": ".bin/create-wasm-app.js"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack-dev-server"
+  },
+  "keywords": [
+    "webassembly",
+    "wasm",
+    "rust",
+    "webpack"
+  ],
+  "author": "kahomayo <kahomayo@pm.me>",
+  "license": "(MIT OR Apache-2.0)",
+  "dependencies": {
+    "monolith-renderer": "file:../pkg"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^5.0.0",
+    "webpack": "^4.29.3",
+    "webpack-cli": "^3.1.0",
+    "webpack-dev-server": "^3.1.5"
+  }
+}

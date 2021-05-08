@@ -1,5 +1,9 @@
 [workspace]
 
 members = [
-    "monolith-finder"
+    "monolith-finder",
+    "monolith-renderer"
 ]
+
+[profile.release]
+opt-level = "s"

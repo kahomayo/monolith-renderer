@@ -30,7 +30,7 @@ pub fn search_monoliths(
     z: i32,
     res_x: usize,
     res_z: usize,
-) -> Vec<Option<f64>> {
+) -> Vec<bool> {
     let mut hill_job = chunk_gen.hill_noise().sample2d(x, z, res_x, res_z);
     let has_candidates =
         search(&mut hill_job, &search_constraint::less_constraint(-512.0)).is_some();
@@ -47,15 +47,9 @@ pub fn search_monoliths(
                 .results()
                 .iter()
                 .zip(depth_job.results().iter())
-                .map(|(h, d)| {
-                    if d.abs() >= 8000.0 {
-                        Some(((h + 256.0) / 512.0).min(1.0) + 0.5)
-                    } else {
-                        None
-                    }
-                })
+                .map(|(h, d)| d.abs() >= 8000.0 && *h < -512.0)
                 .collect();
         }
     }
-    vec![None; res_x * res_z]
+    vec![false; res_x * res_z]
 }

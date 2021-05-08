@@ -1,0 +1,21 @@
+[package]
+name = "monolith-renderer"
+version = "0.1.0"
+authors = ["kahomayo <kahomayo@pm.me>"]
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+monolith-finder = { path = "../monolith-finder" }
+image = { version = "0.23.14", default_features = false }
+wasm-bindgen = "0.2.73"
+console_error_panic_hook = { version = "0.1.6", optional = true }
+wee_alloc = "0.4.5"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3.23"
