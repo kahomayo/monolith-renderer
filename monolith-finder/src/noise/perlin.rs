@@ -1,6 +1,7 @@
-use crate::coord::SamplePos3D;
+use crate::noise::cuboid::SamplingCuboid;
 use java_rand::Random;
 
+/// A single octave of Minecraft's 3-D Perlin noise
 #[derive(Debug)]
 pub struct PerlinNoise {
     permutations: [u8; 512],
@@ -12,6 +13,7 @@ pub struct PerlinNoise {
 impl PerlinNoise {
     pub const RESULT_RANGE: f64 = 1.0;
 
+    /// Creates a noise object using the given random source. All fields will be identical to vanilla.
     pub fn with_random_permutations(random: &mut Random) -> Self {
         let x_offset = random.next_f64() * 256.0;
         let y_offset = random.next_f64() * 256.0;
@@ -56,31 +58,28 @@ impl PerlinNoise {
         (if hash & 0x1 == 0 { u } else { -u }) + (if hash & 0x2 == 0 { v } else { -v })
     }
 
-    pub fn sample(
-        &self,
-        arr: &mut [f64],
-        pos: SamplePos3D,
-        res_x: usize,
-        res_y: usize,
-        res_z: usize,
-        x_scale: f64,
-        y_scale: f64,
-        z_scale: f64,
-        inv_intensity: f64,
-    ) {
-        let mut n = 0;
-        let intensity = 1.0 / inv_intensity;
+    /// Samples a cuboid of noise.
+    ///
+    /// `cuboid` describes the points to sample.
+    /// Results are multiplied by `intensity` and added to `arr`. The point (`x`, `y`, `z`)
+    /// within the cuboid is stored at index `y + res_y * (z + res_z * x)`.
+    ///
+    /// # Panics
+    ///
+    /// If `arr.len()` is less than `res_x * res_y * res_z`.
+    pub fn sample_cuboid(&self, arr: &mut [f64], cuboid: SamplingCuboid, intensity: f64) {
+        let mut output_idx = 0;
         let mut lerp0 = 0.0;
         let mut lerp1 = 0.0;
         let mut lerp2 = 0.0;
         let mut lerp3 = 0.0;
         let mut last_cube_y = Option::None;
-        for x_idx in 0..res_x {
-            for z_idx in 0..res_z {
-                for y_idx in 0..res_y {
-                    let x_pos_base: f64 = (pos.x + x_idx as i32) as f64 * x_scale + self.x_offset;
-                    let y_pos_base: f64 = (pos.y + y_idx as i32) as f64 * y_scale + self.y_offset;
-                    let z_pos_base: f64 = (pos.z + z_idx as i32) as f64 * z_scale + self.z_offset;
+        for x_idx in 0..cuboid.x_extent {
+            for z_idx in 0..cuboid.z_extent {
+                for y_idx in 0..cuboid.y_extent {
+                    let x_pos_base = cuboid.scaled_x(x_idx) + self.x_offset;
+                    let y_pos_base = cuboid.scaled_y(y_idx) + self.y_offset;
+                    let z_pos_base = cuboid.scaled_z(z_idx) + self.z_offset;
                     let cube_x = (x_pos_base.floor() as i32 & 0xFF) as usize;
                     let cube_y = (y_pos_base.floor() as i32 & 0xFF) as usize;
                     let cube_z = (z_pos_base.floor() as i32 & 0xFF) as usize;
@@ -91,6 +90,9 @@ impl PerlinNoise {
                     let v = Self::fade(y_pos);
                     let w = Self::fade(z_pos);
 
+                    // This caching of lerps0-3 happens in vanilla too, but is incorrect!
+                    // The value is only recalculated if cube_y changes, but the calculation also depends on y_pos.
+                    // This means that vertically overlapping cuboids can have different values in their overlaps.
                     if y_idx == 0 || Some(cube_y) != last_cube_y {
                         last_cube_y = Option::Some(cube_y);
                         let big_a = self.permutations[cube_x as usize] as usize + cube_y;
@@ -139,10 +141,10 @@ impl PerlinNoise {
                             ),
                         )
                     }
-                    arr[n] +=
+                    arr[output_idx] +=
                         Self::lerp(w, Self::lerp(v, lerp0, lerp1), Self::lerp(v, lerp2, lerp3))
                             * intensity;
-                    n += 1;
+                    output_idx += 1;
                 }
             }
         }

@@ -1,6 +1,6 @@
 use crate::coord::SamplePos2D;
 use crate::finder::search_constraint::{SearchConstraint, SearchResult};
-use crate::noise::fractal::SamplingJob;
+use crate::noise::SamplingJob;
 use crate::worldgen::ChunkGenerator;
 
 mod search_constraint;

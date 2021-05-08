@@ -1,6 +1,6 @@
 use crate::noise::PerlinNoise;
 
-use crate::coord::SamplePos3D;
+use crate::noise::cuboid::SamplingCuboid;
 use java_rand::Random;
 use std::borrow::{Borrow, BorrowMut};
 use std::ops::DerefMut;
@@ -22,27 +22,12 @@ impl FractalNoise {
         }
     }
 
-    pub fn begin_sampling(
-        &self,
-        pos: SamplePos3D,
-        res_x: usize,
-        res_y: usize,
-        res_z: usize,
-        scale_x: f64,
-        scale_y: f64,
-        scale_z: f64,
-    ) -> SampleJobImpl<Box<[f64]>> {
+    pub fn begin_sampling(&self, cuboid: SamplingCuboid) -> SampleJobImpl<Box<[f64]>> {
         SampleJobImpl {
             noise: self.octaves.as_ref(),
             applied_noises: 0,
-            results: vec![0.0; res_x * res_y * res_z].into_boxed_slice(),
-            pos,
-            res_x,
-            res_y,
-            res_z,
-            scale_x,
-            scale_y,
-            scale_z,
+            results: vec![0.0; cuboid.len()].into_boxed_slice(),
+            cuboid,
         }
     }
 }
@@ -77,30 +62,14 @@ pub struct SampleJobImpl<'a, TResult: DerefMut<Target = [f64]>> {
     noise: &'a [PerlinNoise],
     applied_noises: usize,
     results: TResult,
-    pos: SamplePos3D,
-    res_x: usize,
-    res_y: usize,
-    res_z: usize,
-    scale_x: f64,
-    scale_y: f64,
-    scale_z: f64,
+    cuboid: SamplingCuboid,
 }
 
 impl<'a, TResult: DerefMut<Target = [f64]>> SampleJobImpl<'a, TResult> {
-    pub fn new(
-        noise: &'a [PerlinNoise],
-        results: TResult,
-        pos: SamplePos3D,
-        res_x: usize,
-        res_y: usize,
-        res_z: usize,
-        scale_x: f64,
-        scale_y: f64,
-        scale_z: f64,
-    ) -> Self {
+    pub fn new(noise: &'a [PerlinNoise], results: TResult, cuboid: SamplingCuboid) -> Self {
         assert_eq!(
             results.len(),
-            res_x * res_y * res_z,
+            cuboid.len(),
             "The results slice must exactly match the given dimensions"
         );
 
@@ -108,13 +77,7 @@ impl<'a, TResult: DerefMut<Target = [f64]>> SampleJobImpl<'a, TResult> {
             noise,
             applied_noises: 0,
             results,
-            pos,
-            res_x,
-            res_y,
-            res_z,
-            scale_x,
-            scale_y,
-            scale_z,
+            cuboid,
         }
     }
 
@@ -133,17 +96,11 @@ impl<'a, TResult: DerefMut<Target = [f64]>> SampleJobImpl<'a, TResult> {
 impl<'a, TResult: DerefMut<Target = [f64]>> SamplingJob for SampleJobImpl<'a, TResult> {
     fn sample_once(&mut self) {
         if let Some(perlin_noise) = self.noise.get(self.applied_noises) {
-            let inv_intensity = 0.5_f64.powi(self.remaining_steps() as i32 - 1);
-            perlin_noise.sample(
+            let intensity = 2.0_f64.powi(self.remaining_steps() as i32 - 1);
+            perlin_noise.sample_cuboid(
                 self.results.borrow_mut(),
-                self.pos,
-                self.res_x,
-                self.res_y,
-                self.res_z,
-                self.scale_x * inv_intensity,
-                self.scale_y * inv_intensity,
-                self.scale_z * inv_intensity,
-                inv_intensity,
+                self.cuboid.scale_all(1.0 / intensity),
+                intensity,
             );
             self.applied_noises += 1;
         }
@@ -177,6 +134,7 @@ impl<'a, TResult: DerefMut<Target = [f64]>> SamplingJob for SampleJobImpl<'a, TR
 #[cfg(test)]
 mod tests {
     use crate::coord::SamplePos3D;
+    use crate::noise::cuboid::SamplingCuboid;
     use crate::noise::fractal::{FractalNoise, SamplingJob};
     use assert_approx_eq::assert_approx_eq;
     use java_rand::Random;
@@ -185,15 +143,15 @@ mod tests {
     fn basic_data_matches() {
         let noise = FractalNoise::with_random_octaves(&mut Random::new(15), 16);
         let noises = noise
-            .begin_sampling(
-                SamplePos3D { x: 15, y: 52, z: 6 },
-                16,
-                4,
-                29,
-                0.512386,
-                198.1293,
-                9999.1283,
-            )
+            .begin_sampling(SamplingCuboid {
+                start_pos: SamplePos3D { x: 15, y: 52, z: 6 },
+                x_extent: 16,
+                y_extent: 4,
+                z_extent: 29,
+                x_scale: 0.512386,
+                y_scale: 198.1293,
+                z_scale: 9999.1283,
+            })
             .sample_all();
         const EXPECTED: f64 = 10828.95355391629;
         let actual = noises[592];
@@ -240,8 +198,15 @@ mod tests {
     impl RemainingVariationTest {
         pub fn run(self) {
             let noise = FractalNoise::with_random_octaves(&mut Random::new(0), self.octaves);
-            let mut job =
-                noise.begin_sampling(SamplePos3D { x: 0, y: 0, z: 0 }, 1, 1, 1, 1.0, 1.0, 1.0);
+            let mut job = noise.begin_sampling(SamplingCuboid {
+                start_pos: SamplePos3D { x: 0, y: 0, z: 0 },
+                x_extent: 1,
+                y_extent: 1,
+                z_extent: 1,
+                x_scale: 1.0,
+                y_scale: 1.0,
+                z_scale: 1.0,
+            });
 
             for _ in 0..self.samples {
                 job.sample_once();
