@@ -14,7 +14,6 @@ pub const RESULT_LENGTH: usize = TILE_SIZE * TILE_SIZE * BYTES_PER_PIXEL;
 
 pub static mut GLOBAL_JOB: Option<RenderJob> = None;
 
-#[wasm_bindgen]
 pub struct RenderJob {
     chunk_generator: ChunkGenerator,
     results: [u8; RESULT_LENGTH],
@@ -51,9 +50,7 @@ impl RenderJob {
     }
 }
 
-#[wasm_bindgen]
 impl RenderJob {
-    #[wasm_bindgen(constructor)]
     pub fn new(seed: u64) -> Self {
         Self {
             chunk_generator: ChunkGenerator::new(seed),
