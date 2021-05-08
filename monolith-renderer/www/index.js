@@ -1,15 +1,13 @@
 import * as wasm from "monolith-renderer";
 import {memory} from "monolith-renderer/monolith_renderer_bg";
 
-var x = new wasm.RenderJob();
-x.set_seed("8676641231682978167");
+wasm.use_seed("8676641231682978167");
 
 const canvas_element = document.getElementById("test-canvas");
 const canvas_context = canvas_element.getContext("2d");
 const canvasImageData = canvas_context.createImageData(256, 256);
 
-const result_buf = x.render_section(-3072, 4096);
-// const result_buf = x.render_section(-3051, 3743);
+const result_buf = wasm.render_tile(-3072, 4096);
 const wasmByteMemoryArray = new Uint8Array(memory.buffer);
 const imageDataArray = wasmByteMemoryArray.slice(result_buf, result_buf + 256 * 256 * 4);
 canvasImageData.data.set(imageDataArray);
@@ -32,7 +30,7 @@ var WasmLayer = L.GridLayer.extend({
         tile.width = size.x;
         tile.height = size.y;
         var context = tile.getContext("2d");
-        const result_buf = x.render_section(pos_x, pos_z);
+        const result_buf = wasm.render_tile(pos_x, pos_z);
         const wasmByteMemoryArray = new Uint8Array(memory.buffer);
         const imageDataArray = wasmByteMemoryArray.slice(result_buf, result_buf + 256 * 256 * 4);
         const canvasImageData = context.createImageData(256, 256);

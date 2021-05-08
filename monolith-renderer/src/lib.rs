@@ -1,21 +1,33 @@
-use image::{Rgba, RgbaImage};
+use crate::util::DerefSliceArray;
+use image::{ImageBuffer, Rgba};
 use monolith_finder::coord::{BlockPos2D, SamplePos2D};
 use monolith_finder::finder::search_monoliths;
 use monolith_finder::worldgen::ChunkGenerator;
+use std::ptr::null;
 use wasm_bindgen::prelude::*;
 
-pub const TILE_SIZE: u32 = 256;
+mod util;
+
+pub const TILE_SIZE: usize = 256;
 pub const BYTES_PER_PIXEL: usize = 4;
+pub const RESULT_LENGTH: usize = TILE_SIZE * TILE_SIZE * BYTES_PER_PIXEL;
+
+pub static mut GLOBAL_JOB: Option<RenderJob> = None;
 
 #[wasm_bindgen]
 pub struct RenderJob {
     chunk_generator: ChunkGenerator,
-    results: Vec<u8>,
+    results: [u8; RESULT_LENGTH],
 }
 
 impl RenderJob {
     pub fn render_section_to_buf(&mut self, start_pos: BlockPos2D) {
-        let mut image = RgbaImage::new(TILE_SIZE, TILE_SIZE);
+        let mut image = ImageBuffer::from_raw(
+            TILE_SIZE as u32,
+            TILE_SIZE as u32,
+            DerefSliceArray(&mut self.results),
+        )
+        .expect("Buffer size should match exactly");
         let start_pos: SamplePos2D = start_pos.into();
         for fragment_x in 0..64u32 {
             for fragment_z in 0..64u32 {
@@ -27,10 +39,6 @@ impl RenderJob {
                 for px_x in 0..4u32 {
                     for px_z in 0..4u32 {
                         let is_monolith = is_monolith[(4 * px_x + px_z) as usize];
-                        assert_eq!(
-                            *image.get_pixel(fragment_x * 4 + px_x, fragment_z * 4 + px_z),
-                            Rgba([0, 0, 0, 0])
-                        );
                         image.put_pixel(
                             fragment_x * 4 + px_x,
                             fragment_z * 4 + px_z,
@@ -40,17 +48,16 @@ impl RenderJob {
                 }
             }
         }
-        self.results = image.into_raw();
     }
 }
 
 #[wasm_bindgen]
 impl RenderJob {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
-            chunk_generator: ChunkGenerator::new(0),
-            results: Vec::new(),
+            chunk_generator: ChunkGenerator::new(seed),
+            results: [0; RESULT_LENGTH],
         }
     }
 
@@ -66,6 +73,23 @@ impl RenderJob {
     }
 }
 
+// These should be UNSAFE, but wasm_bindgen doesn't let me mark them as such
+#[wasm_bindgen]
+pub fn use_seed(seed: u64) {
+    util::set_panic_hook();
+    unsafe { GLOBAL_JOB = Some(RenderJob::new(seed)) }
+}
+
+#[wasm_bindgen]
+pub fn render_tile(block_x: i32, block_z: i32) -> *const u8 {
+    unsafe {
+        GLOBAL_JOB
+            .as_mut()
+            .map(|j| j.render_section(block_x, block_z))
+            .unwrap_or(null())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::RenderJob;
@@ -73,16 +97,14 @@ mod tests {
 
     #[test]
     fn output_is_reasonable() {
-        let mut x = RenderJob::new();
-        x.set_seed(8676641231682978167);
+        let mut x = RenderJob::new(8676641231682978167);
         x.render_section_to_buf(BlockPos2D { x: -2624, z: 4343 });
         assert_eq!(255, x.results[1]);
     }
 
     #[test]
     fn output_is_reasonable_2() {
-        let mut x = RenderJob::new();
-        x.set_seed(8676641231682978167);
+        let mut x = RenderJob::new(8676641231682978167);
         let res_ptr = x.render_section(-2624, 4343);
         unsafe {
             assert_eq!(255, *res_ptr.add(1));
