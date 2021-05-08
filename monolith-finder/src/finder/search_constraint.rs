@@ -101,9 +101,9 @@ impl<Job: SamplingJob> SearchConstraint<Job> for AbsoluteGeqConstraint {
     fn is_found(&self, job: &Job, value: f64) -> SearchResult<Self::Found> {
         let lowest_possible = value.abs() - job.remaining_variation();
         let highest_possible = value.abs() + job.remaining_variation();
-        if lowest_possible <= self.bound {
+        if self.bound <= lowest_possible {
             SearchResult::Found(())
-        } else if self.bound <= highest_possible || !value.is_normal() {
+        } else if highest_possible < self.bound || !value.is_finite() {
             SearchResult::NotFound
         } else {
             SearchResult::Unknown
