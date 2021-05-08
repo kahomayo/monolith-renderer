@@ -1,3 +1,4 @@
+pub mod coord;
 pub mod finder;
 pub mod noise;
 pub mod worldgen;

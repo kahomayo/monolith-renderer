@@ -1,4 +1,5 @@
 use image::{Rgba, RgbaImage};
+use monolith_finder::coord::BlockPos2D;
 use monolith_finder::finder::search_monoliths;
 use monolith_finder::worldgen::ChunkGenerator;
 use wasm_bindgen::prelude::*;
@@ -30,13 +31,11 @@ impl RenderJob {
         let mut image = RgbaImage::new(TILE_SIZE, TILE_SIZE);
         for fragment_x in 0..64u32 {
             for fragment_z in 0..64u32 {
-                let is_monolith = search_monoliths(
-                    &self.chunk_generator,
-                    block_x + (4 * fragment_x as i32),
-                    block_z + (4 * fragment_z as i32),
-                    4,
-                    4,
-                );
+                let pos = BlockPos2D {
+                    x: block_x + (4 * fragment_x as i32),
+                    z: block_z + (4 * fragment_z as i32),
+                };
+                let is_monolith = search_monoliths(&self.chunk_generator, pos.into(), 4, 4);
                 for px_x in 0..4u32 {
                     for px_z in 0..4u32 {
                         let is_monolith = is_monolith[(px_z + 4 * px_x) as usize];

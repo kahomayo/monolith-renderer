@@ -36,12 +36,16 @@ impl ChunkGenerator {
 #[cfg(test)]
 mod tests {
     use super::ChunkGenerator;
+    use crate::coord::SamplePos2D;
     use assert_approx_eq::assert_approx_eq;
 
     #[test]
     fn hill_noise_is_correct() {
         let chunk_gen = ChunkGenerator::new(8676641231682978167);
-        let results = chunk_gen.hill_noise.sample2d(-656, 1084, 1, 1).sample_all();
+        let results = chunk_gen
+            .hill_noise
+            .sample2d(SamplePos2D { x: -656, z: 1084 }, 1, 1)
+            .sample_all();
         assert_approx_eq!(results[0], -523.681051)
     }
 }

@@ -1,3 +1,4 @@
+use crate::coord::{SamplePos2D, SamplePos3D};
 use crate::noise::FractalNoise;
 use crate::noise::SampleJobImpl;
 use java_rand::Random;
@@ -24,27 +25,22 @@ impl ScaledNoise {
 
     pub fn sample2d(
         &self,
-        x: i32,
-        z: i32,
+        pos: SamplePos2D,
         res_x: usize,
         res_z: usize,
     ) -> SampleJobImpl<Box<[f64]>> {
-        self.sample3d(x, 0, z, res_x, 1, res_z)
+        self.sample3d(pos.at_y(0), res_x, 1, res_z)
     }
 
     pub fn sample3d(
         &self,
-        x: i32,
-        y: i32,
-        z: i32,
+        pos: SamplePos3D,
         res_x: usize,
         res_y: usize,
         res_z: usize,
     ) -> SampleJobImpl<Box<[f64]>> {
         self.noise.begin_sampling(
-            x,
-            y,
-            z,
+            pos,
             res_x,
             res_y,
             res_z,

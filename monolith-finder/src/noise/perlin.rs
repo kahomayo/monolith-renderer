@@ -1,3 +1,4 @@
+use crate::coord::SamplePos3D;
 use java_rand::Random;
 
 #[derive(Debug)]
@@ -58,9 +59,7 @@ impl PerlinNoise {
     pub fn sample(
         &self,
         arr: &mut [f64],
-        x: i32,
-        y: i32,
-        z: i32,
+        pos: SamplePos3D,
         res_x: usize,
         res_y: usize,
         res_z: usize,
@@ -79,9 +78,9 @@ impl PerlinNoise {
         for x_idx in 0..res_x {
             for z_idx in 0..res_z {
                 for y_idx in 0..res_y {
-                    let x_pos_base: f64 = (x + x_idx as i32) as f64 * x_scale + self.x_offset;
-                    let y_pos_base: f64 = (y + y_idx as i32) as f64 * y_scale + self.y_offset;
-                    let z_pos_base: f64 = (z + z_idx as i32) as f64 * z_scale + self.z_offset;
+                    let x_pos_base: f64 = (pos.x + x_idx as i32) as f64 * x_scale + self.x_offset;
+                    let y_pos_base: f64 = (pos.y + y_idx as i32) as f64 * y_scale + self.y_offset;
+                    let z_pos_base: f64 = (pos.z + z_idx as i32) as f64 * z_scale + self.z_offset;
                     let cube_x = (x_pos_base.floor() as i32 & 0xFF) as usize;
                     let cube_y = (y_pos_base.floor() as i32 & 0xFF) as usize;
                     let cube_z = (z_pos_base.floor() as i32 & 0xFF) as usize;
