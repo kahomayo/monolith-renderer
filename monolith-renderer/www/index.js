@@ -44,7 +44,7 @@ var monoMap = L.map('leaflet-map', {
     maxZoom: 2,
     minZoom: -16,
     crs: L.CRS.Simple,
-}).setView([-3743, -3051] /*[0, 0]*/, 0);
+}).setView([0, 0], -6);
 var WasmLayer = L.GridLayer.extend({
     createTile: function(coord, done) {
         var error;

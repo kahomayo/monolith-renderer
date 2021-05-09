@@ -25,31 +25,22 @@ where
     }
 }
 
-pub fn search_monoliths(
-    chunk_gen: &ChunkGenerator,
-    pos: SamplePos2D,
-    res_x: usize,
-    res_z: usize,
-) -> Vec<bool> {
-    let mut hill_job = chunk_gen.hill_noise().sample2d(pos, res_x, res_z);
-    let has_candidates =
-        search(&mut hill_job, &search_constraint::less_constraint(-512.0)).is_some();
-    if has_candidates {
-        let mut depth_job = chunk_gen.depth_noise().sample2d(pos, res_x, res_z);
-        let has_land = search(
-            &mut depth_job,
-            &search_constraint::absolute_greater_equals(8000.0),
-        )
-        .is_some();
+pub struct PointResult {
+    pub is_candidate: bool,
+    pub is_land: bool,
+}
 
-        if has_land {
-            return hill_job
-                .results()
-                .iter()
-                .zip(depth_job.results().iter())
-                .map(|(h, d)| d.abs() >= 8000.0 && *h < -512.0)
-                .collect();
-        }
+pub fn inspect_point(chunk_gen: &ChunkGenerator, pos: SamplePos2D) -> PointResult {
+    let mut hill_job = chunk_gen.hill_noise().sample2d(pos, 1, 1);
+    let is_candidate = search(&mut hill_job, &search_constraint::less_constraint(-512.0)).is_some();
+    let mut depth_job = chunk_gen.depth_noise().sample2d(pos, 1, 1);
+    let is_land = search(
+        &mut depth_job,
+        &search_constraint::absolute_greater_equals(8000.0),
+    )
+    .is_some();
+    PointResult {
+        is_candidate,
+        is_land,
     }
-    vec![false; res_x * res_z]
 }
