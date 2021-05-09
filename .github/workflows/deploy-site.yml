@@ -18,7 +18,7 @@ jobs:
       with:
         node-version: '14'
     - name: Build Rust
-      run: wasm-pack build --dev
+      run: wasm-pack build --release
       working-directory: monolith-renderer
     - run: npm install
       working-directory: monolith-renderer/www
