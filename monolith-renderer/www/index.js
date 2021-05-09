@@ -44,7 +44,7 @@ var monoMap = L.map('leaflet-map', {
     maxZoom: 2,
     minZoom: -4,
     crs: L.CRS.Simple,
-}).setView([-3743, -3051], 0);
+}).setView([-3743, -3051] /*[0, 0]*/, 0);
 var WasmLayer = L.GridLayer.extend({
     createTile: function(coord, done) {
         var error;
@@ -71,8 +71,13 @@ var thatLayer = new WasmLayer({
 thatLayer.addTo(monoMap);
 L.latlngGraticule({
     showLabel: true,
-    dashArray: [5, 5],
+    dashArray: [4, 4],
     zoomInterval: [
-        {start: -4, end: 2, interval: 100}
+        {start: 1, end: 2, interval: 50},
+        {start: 0, end: 1, interval: 100},
+        {start: -1, end: 1, interval: 250},
+        {start: -2, end: 1, interval: 500},
+        {start: -3, end: 1, interval: 1024},
+        {start: -4, end: 1, interval: 2048},
     ]
 }).addTo(monoMap);
