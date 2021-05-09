@@ -50,7 +50,6 @@ pub fn render_section_to_buf(
 }
 
 // These should be UNSAFE, but wasm_bindgen doesn't let me mark them as such
-#[wasm_bindgen]
 pub fn use_seed(seed: u64) {
     util::set_panic_hook();
     unsafe {
@@ -67,7 +66,6 @@ pub fn use_seed(seed: u64) {
     }
 }
 
-#[wasm_bindgen]
 pub fn render_tile(block_x: i32, block_z: i32) -> *const u8 {
     unsafe {
         render_section_to_buf(

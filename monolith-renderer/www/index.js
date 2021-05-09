@@ -2,8 +2,6 @@ import * as wasm from "monolith-renderer";
 import {memory} from "monolith-renderer/monolith_renderer_bg";
 import Worker from "worker-loader!./tile.worker.bootstrap.js"
 
-wasm.use_seed("8676641231682978167");
-
 var job_id = 0;
 const jobs = []
 const running_jobs = { }
