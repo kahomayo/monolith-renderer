@@ -6,13 +6,65 @@
     <link rel="stylesheet" href="node_modules/leaflet/dist/leaflet.css"/>
   </head>
   <body>
-    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
+    <h1>Monolith finder</h1>
     <label for="seed-input">Seed:</label>
     <input id="seed-input" type="text"/>
     <button id="seed-random-button">Random</button>
     <button id="show-seed-button">Show seed</button>
+    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
     <div id="leaflet-map" style="height: 500px;"></div>
-    <canvas id="test-canvas" width="256" height="256"></canvas>
     <script src="./bootstrap.js"></script>
+    <h2>Introduction</h2>
+    <p>
+      The map displays how Minecraft versions inf-20100611 to a1.1.2_01 generated terrain. Blue and green areas correspond <i>roughly</i> to water and land. Monoliths are displayed in bright red.
+    </p>
+    <h2>Theory</h2>
+    <p>
+      Monoliths generate if the 2-dimensional 10-octave <b>hill-noise</b> (idk
+      how other people call that one) takes on values below -512 and the 2d
+      16-octave terrain noise's absolute value is greater or equal 8000. The hill-noise is processed into a <b>hillFactor</b>, which is used in the formula
+      <code>(noiseY - processedDepthNoise) * 12.0 / hillFactor</code>, which is
+      usually responsible for making lower Y levels more likely to be solid than
+      higher ones (influenced of course by variations in the noise to cause
+      mountains and such). If this <code>hillFactor</code> is barely above 0,
+      then the terrain exactly follows the depth noise without any floaty bits
+      (which are caused by 3-d elements).
+    </p>
+    <p>
+      However, if the <code>hillFactor</code> is below 0, then this formula is
+      effectively negated. Lower Y levels are now more likely to be air and
+      higher ones are more likely to be solid. The edge of solid/air is still at
+      the Y-level determined by <code>processedDepthNoise</code>, the sides have
+      just flipped.
+    </p>
+    <p>
+      It is technically possible for an area with negative
+      <code>hillFactor</code> to not appear as a monolith, because the absolute
+      value of <code>hillFactor</code> is so large that it can be overpowered by
+      interpolation noise. This is very unlikely and affected areas would likely be surrounded by "normal" monoliths.
+    </p>
+
+    <h2>Tech</h2>
+    <p>
+      The map is calculated in Rust, by applying octaves of noise until it's
+      known which color to use. Most pixels are nowhere close to being a
+      monolith, so they can be discarded after applying just a few octaves. The
+      code was compiled to WebAssembly and is running in a few WebWorkers,
+      meaning that the calculation is quick and takes advantage of multiple
+      cores. The rendered images are then displayed using Leaflet.
+    </p>
+    <p>
+      Webpack is doing a whole load of stuff here that I don't properly
+      understand (and would prefer didn't exist), but the template used it, so
+      it's here.
+    </p>
+
+    <ul>
+      <li><a href="node_modules/leaflet/LICENSE">Leaflet</a></li>
+      <li><a href="leaflet.latlng-graticule/LICENSE">Leaflet Graticule</a> (modified for <code>CRS.Simple</code> coordinate systems)</li>
+      <li><a href="https://github.com/coderbot16/java-rand/blob/56cc66afa94857ad8e2f9043cf95eba605f02df8/LICENSE">java-rand</a></li>
+      <li><a href="https://github.com/rustwasm/wasm-bindgen/blob/c8fb41faf1d367e4b5e4b695c9493dc1684742e6/LICENSE-MIT">wasm-bindgen</a></li>
+    </ul>
   </body>
+  <div style="color: red;font-size: xx-large;transform:rotate(-159deg)">Graphic design is my passion</div>
 </html>
