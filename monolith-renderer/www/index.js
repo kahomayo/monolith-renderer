@@ -11,7 +11,6 @@ const idle_workers = [Worker(), Worker(), Worker(), Worker(), Worker(), Worker()
 
 idle_workers.forEach(w => {
     w.onmessage = e => {
-        console.log("Main got: ", e.data)
         idle_workers.push(w);
         const job = running_jobs[e.data.id];
         running_jobs[e.data.id] = undefined;
@@ -26,7 +25,6 @@ function try_start_job() {
         const worker = idle_workers.pop();
         if (worker) {
             const job = jobs.shift();
-            console.log("Starting job ", job)
             running_jobs[job.id] = job;
             worker.postMessage({
                 id: job.id,
@@ -52,10 +50,6 @@ var monoMap = L.map('leaflet-map', {
 var WasmLayer = L.GridLayer.extend({
     createTile: function(coord, done) {
         var error;
-        console.log("Leaflet requested", coord);
-        // let pos_x = coord.x * 1024;
-        // let pos_z = coord.y * 1024;
-        // console.log(pos_x, pos_z)
         var tile = L.DomUtil.create('canvas', 'leaflet-tile');
         var size = this.getTileSize();
         tile.width = size.x;
@@ -68,16 +62,6 @@ var WasmLayer = L.GridLayer.extend({
             tile: tile,
             on_done: () => done(error, tile)
         });
-
-        // var context = tile.getContext("2d");
-        // const result_buf = wasm.render_tile(pos_x, pos_z);
-        // const wasmByteMemoryArray = new Uint8Array(memory.buffer);
-        // const imageDataArray = wasmByteMemoryArray.slice(result_buf, result_buf + 256 * 256 * 4);
-        // const canvasImageData = context.createImageData(256, 256);
-        // canvasImageData.data.set(imageDataArray);
-        // context.putImageData(canvasImageData, 0, 0);
-        // var tile = document.createElement('label');
-        // tile.innerHtml = "" + coord.lat + " | " + coord.long
         return tile;
     }
 });
