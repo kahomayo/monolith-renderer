@@ -1,21 +1,19 @@
-use crate::util::DerefSliceArray;
-use image::{ImageBuffer, Rgba};
+#![no_std]
+
 use monolith_finder::coord::{BlockPos2D, SamplePos2D};
 use monolith_finder::finder::{inspect_point, PointResult};
 use monolith_finder::worldgen::ChunkGenerator;
-use std::num::NonZeroU32;
 use wasm_bindgen::prelude::*;
-
-mod util;
 
 const TILE_SIZE: usize = 256;
 const BYTES_PER_PIXEL: usize = 4;
 const RESULT_LENGTH: usize = TILE_SIZE * TILE_SIZE * BYTES_PER_PIXEL;
 
-const COLOR_MONOLITH: Rgba<u8> = Rgba([255, 0, 0, 255]);
-const COLOR_LAND: Rgba<u8> = Rgba([141, 179, 96, 255]);
-const COLOR_WATER: Rgba<u8> = Rgba([0, 0, 86, 255]);
-const COLOR_CANDIDATE: Rgba<u8> = Rgba([0, 0, 64, 255]);
+type Color = [u8; 4];
+const COLOR_MONOLITH: Color = [255, 0, 0, 255];
+const COLOR_LAND: Color = [141, 179, 96, 255];
+const COLOR_WATER: Color = [0, 0, 86, 255];
+const COLOR_CANDIDATE: Color = [0, 0, 64, 255];
 
 static mut GLOBAL_GENERATOR: Option<SeededGenerator> = None;
 static mut GLOBAL_BUFFER: [u8; RESULT_LENGTH] = [0; RESULT_LENGTH];
@@ -25,7 +23,7 @@ struct SeededGenerator {
     generator: ChunkGenerator,
 }
 
-fn get_pixel(point_result: PointResult) -> Rgba<u8> {
+fn get_pixel(point_result: PointResult) -> Color {
     match point_result {
         PointResult {
             is_candidate: true,
@@ -44,27 +42,27 @@ fn render_section_to_buf_blip(
     chunk_generator: &ChunkGenerator,
     results: &mut [u8; RESULT_LENGTH],
     start_pos: BlockPos2D,
-    stride: NonZeroU32,
+    stride: u32,
 ) {
-    let mut image =
-        ImageBuffer::from_raw(TILE_SIZE as u32, TILE_SIZE as u32, DerefSliceArray(results))
-            .expect("Buffer size should match exactly");
+    assert!(stride > 0);
     let start_pos: SamplePos2D = start_pos.into();
     for point_x in 0..TILE_SIZE {
         for point_z in 0..TILE_SIZE {
             let pos = SamplePos2D {
-                x: start_pos.x + (stride.get() as i32 * point_x as i32),
-                z: start_pos.z + (stride.get() as i32 * point_z as i32),
+                x: start_pos.x + (stride as i32 * point_x as i32),
+                z: start_pos.z + (stride as i32 * point_z as i32),
             };
             let point_result = inspect_point(chunk_generator, pos.into());
-            image.put_pixel(point_x as u32, point_z as u32, get_pixel(point_result));
+            let pixel = get_pixel(point_result);
+            for i in 0..4 {
+                results[(point_z * TILE_SIZE + point_x) * 4 + i] = pixel[i];
+            }
         }
     }
 }
 
 // These should be UNSAFE, but wasm_bindgen doesn't let me mark them as such
 fn use_seed(seed: u64) {
-    util::set_panic_hook();
     unsafe {
         if GLOBAL_GENERATOR
             .as_ref()
@@ -107,7 +105,7 @@ pub fn fill_tile(seed: u64, tile_x: i32, tile_y: i32, tile_z: i32) {
                 x: block_x,
                 z: block_z,
             },
-            NonZeroU32::new(scale_factor).expect("Scale factor was miscalculated"),
+            scale_factor,
         );
     }
 }
@@ -117,18 +115,12 @@ mod tests {
     use crate::{render_section_to_buf_blip, RESULT_LENGTH};
     use monolith_finder::coord::BlockPos2D;
     use monolith_finder::worldgen::ChunkGenerator;
-    use std::num::NonZeroU32;
 
     #[test]
     fn output_is_reasonable() {
         let gen = ChunkGenerator::new(8676641231682978167);
         let mut buf = [0; RESULT_LENGTH];
-        render_section_to_buf_blip(
-            &gen,
-            &mut buf,
-            BlockPos2D { x: -2624, z: 4343 },
-            NonZeroU32::new(1).unwrap(),
-        );
-        assert_eq!(255, buf[1]);
+        render_section_to_buf_blip(&gen, &mut buf, BlockPos2D { x: -2624, z: 4343 }, 1);
+        assert_eq!(255, buf[3]);
     }
 }
