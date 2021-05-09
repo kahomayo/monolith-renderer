@@ -1,3 +1,5 @@
+import L from "leaflet"
+
 /* eslint-disable indent,semi */
 /**
  *  Create a Canvas as ImageOverlay to draw the Lat/Lon Graticule,
@@ -5,9 +7,8 @@
  *  Author: lanwei@cloudybay.com.tw
  */
 
-(function (window, document, undefined) {
-
-    L.LatLngGraticule = L.Layer.extend({
+export const LatLngGraticule = (function (window, document, undefined) {
+    return L.Layer.extend({
         includes: (L.Evented.prototype || L.Mixin.Events),
         options: {
             showLabel: true,
@@ -486,10 +487,4 @@
         }
 
     });
-
-    L.latlngGraticule = function (options) {
-        return new L.LatLngGraticule(options);
-    };
-
-
-    }(this, document));
+}(this, document));

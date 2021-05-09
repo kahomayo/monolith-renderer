@@ -1,6 +1,9 @@
 import * as wasm from "monolith-renderer";
 import {memory} from "monolith-renderer/monolith_renderer_bg";
 import Worker from "worker-loader!./tile.worker.bootstrap.js"
+import L from "leaflet"
+import { LatLngGraticule } from "./leaflet.latlng-graticule.js"
+
 
 var job_id = 0;
 const jobs = []
@@ -67,7 +70,7 @@ const WasmLayer = L.GridLayer.extend({
     }
 });
 var currentLayer = null;
-L.latlngGraticule({
+new LatLngGraticule({
     showLabel: true,
     dashArray: [4, 4],
     zoomInterval: [

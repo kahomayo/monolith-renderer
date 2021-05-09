@@ -19,6 +19,7 @@
   "author": "kahomayo <kahomayo@pm.me>",
   "license": "(MIT OR Apache-2.0)",
   "dependencies": {
+    "leaflet": "^1.7.1",
     "monolith-renderer": "file:../pkg"
   },
   "devDependencies": {
