@@ -1,0 +1,28 @@
+
+name: Automatic Test
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: jetli/wasm-pack-action@v0.3.0
+        version: 'v0.9.1'
+    - name: Build
+      run: cargo build --verbose
+    - name: Build WASM
+      run: wasm-pack build --dev
+      working-directory: monolith-renderer
+    - name: Run tests
+      run: cargo test --verbose
