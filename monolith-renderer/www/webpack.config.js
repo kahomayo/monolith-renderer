@@ -7,6 +7,14 @@ module.exports = {
     path: path.resolve(__dirname, "dist"),
     filename: "bootstrap.js",
   },
+  // module: {
+  //   rules: [
+  //     {
+  //       test: /\.worker\.js$/,
+  //       use: { loader: "worker-loader" }
+  //     }
+  //   ]
+  // },
   mode: "development",
   plugins: [
     new CopyWebpackPlugin(['index.html'])

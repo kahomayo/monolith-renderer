@@ -3,7 +3,6 @@ use image::{ImageBuffer, Rgba};
 use monolith_finder::coord::{BlockPos2D, SamplePos2D};
 use monolith_finder::finder::search_monoliths;
 use monolith_finder::worldgen::ChunkGenerator;
-use std::ptr::null;
 use wasm_bindgen::prelude::*;
 
 mod util;
@@ -12,61 +11,41 @@ pub const TILE_SIZE: usize = 256;
 pub const BYTES_PER_PIXEL: usize = 4;
 pub const RESULT_LENGTH: usize = TILE_SIZE * TILE_SIZE * BYTES_PER_PIXEL;
 
-pub static mut GLOBAL_JOB: Option<RenderJob> = None;
+static mut GLOBAL_GENERATOR: Option<SeededGenerator> = None;
+static mut GLOBAL_BUFFER: [u8; RESULT_LENGTH] = [0; RESULT_LENGTH];
 
-pub struct RenderJob {
-    chunk_generator: ChunkGenerator,
-    results: [u8; RESULT_LENGTH],
+struct SeededGenerator {
+    seed: u64,
+    generator: ChunkGenerator,
 }
 
-impl RenderJob {
-    pub fn render_section_to_buf(&mut self, start_pos: BlockPos2D) {
-        let mut image = ImageBuffer::from_raw(
-            TILE_SIZE as u32,
-            TILE_SIZE as u32,
-            DerefSliceArray(&mut self.results),
-        )
-        .expect("Buffer size should match exactly");
-        let start_pos: SamplePos2D = start_pos.into();
-        for fragment_x in 0..64u32 {
-            for fragment_z in 0..64u32 {
-                let pos = SamplePos2D {
-                    x: start_pos.x + (4 * fragment_x as i32),
-                    z: start_pos.z + (4 * fragment_z as i32),
-                };
-                let is_monolith = search_monoliths(&self.chunk_generator, pos.into(), 4, 4);
-                for px_x in 0..4u32 {
-                    for px_z in 0..4u32 {
-                        let is_monolith = is_monolith[(4 * px_x + px_z) as usize];
-                        image.put_pixel(
-                            fragment_x * 4 + px_x,
-                            fragment_z * 4 + px_z,
-                            Rgba([0, if is_monolith { 255 } else { 0 }, 128, 255]),
-                        );
-                    }
+pub fn render_section_to_buf(
+    chunk_generator: &ChunkGenerator,
+    results: &mut [u8; RESULT_LENGTH],
+    start_pos: BlockPos2D,
+) {
+    let mut image =
+        ImageBuffer::from_raw(TILE_SIZE as u32, TILE_SIZE as u32, DerefSliceArray(results))
+            .expect("Buffer size should match exactly");
+    let start_pos: SamplePos2D = start_pos.into();
+    for fragment_x in 0..64u32 {
+        for fragment_z in 0..64u32 {
+            let pos = SamplePos2D {
+                x: start_pos.x + (4 * fragment_x as i32),
+                z: start_pos.z + (4 * fragment_z as i32),
+            };
+            let is_monolith = search_monoliths(chunk_generator, pos.into(), 4, 4);
+            for px_x in 0..4u32 {
+                for px_z in 0..4u32 {
+                    let is_monolith = is_monolith[(4 * px_x + px_z) as usize];
+                    image.put_pixel(
+                        fragment_x * 4 + px_x,
+                        fragment_z * 4 + px_z,
+                        Rgba([0, if is_monolith { 255 } else { 0 }, 128, 255]),
+                    );
                 }
             }
         }
-    }
-}
-
-impl RenderJob {
-    pub fn new(seed: u64) -> Self {
-        Self {
-            chunk_generator: ChunkGenerator::new(seed),
-            results: [0; RESULT_LENGTH],
-        }
-    }
-
-    pub fn set_seed(&mut self, seed: u64) {
-        self.chunk_generator = ChunkGenerator::new(seed);
-    }
-    pub fn render_section(&mut self, block_x: i32, block_z: i32) -> *const u8 {
-        self.render_section_to_buf(BlockPos2D {
-            x: block_x,
-            z: block_z,
-        });
-        self.results.as_ptr()
     }
 }
 
@@ -74,37 +53,67 @@ impl RenderJob {
 #[wasm_bindgen]
 pub fn use_seed(seed: u64) {
     util::set_panic_hook();
-    unsafe { GLOBAL_JOB = Some(RenderJob::new(seed)) }
+    unsafe {
+        if GLOBAL_GENERATOR
+            .as_ref()
+            .filter(|g| g.seed == seed)
+            .is_none()
+        {
+            GLOBAL_GENERATOR = Some(SeededGenerator {
+                seed,
+                generator: ChunkGenerator::new(seed),
+            });
+        }
+    }
 }
 
 #[wasm_bindgen]
 pub fn render_tile(block_x: i32, block_z: i32) -> *const u8 {
     unsafe {
-        GLOBAL_JOB
-            .as_mut()
-            .map(|j| j.render_section(block_x, block_z))
-            .unwrap_or(null())
+        render_section_to_buf(
+            &GLOBAL_GENERATOR
+                .as_ref()
+                .expect("should have seeded")
+                .generator,
+            &mut GLOBAL_BUFFER,
+            BlockPos2D {
+                x: block_x,
+                z: block_z,
+            },
+        );
     }
+    get_result_data()
+}
+
+#[wasm_bindgen]
+pub fn get_result_data() -> *const u8 {
+    unsafe { GLOBAL_BUFFER.as_ptr() }
+}
+
+#[wasm_bindgen]
+pub fn get_result_len() -> usize {
+    RESULT_LENGTH
+}
+
+#[wasm_bindgen]
+pub fn fill_tile(seed: u64, tile_x: i32, tile_y: i32, tile_z: i32) {
+    assert_eq!(tile_z, -2);
+    use_seed(seed);
+    render_tile(tile_x * 1024, tile_y * 1024);
+    assert_eq!(255, unsafe { GLOBAL_BUFFER[3] });
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::RenderJob;
+    use crate::{render_section_to_buf, RESULT_LENGTH};
     use monolith_finder::coord::BlockPos2D;
+    use monolith_finder::worldgen::ChunkGenerator;
 
     #[test]
     fn output_is_reasonable() {
-        let mut x = RenderJob::new(8676641231682978167);
-        x.render_section_to_buf(BlockPos2D { x: -2624, z: 4343 });
-        assert_eq!(255, x.results[1]);
-    }
-
-    #[test]
-    fn output_is_reasonable_2() {
-        let mut x = RenderJob::new(8676641231682978167);
-        let res_ptr = x.render_section(-2624, 4343);
-        unsafe {
-            assert_eq!(255, *res_ptr.add(1));
-        }
+        let gen = ChunkGenerator::new(8676641231682978167);
+        let mut buf = [0; RESULT_LENGTH];
+        render_section_to_buf(&gen, &mut buf, BlockPos2D { x: -2624, z: 4343 });
+        assert_eq!(255, buf[1]);
     }
 }
