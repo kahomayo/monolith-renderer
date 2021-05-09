@@ -69,3 +69,10 @@ var thatLayer = new WasmLayer({
     maxNativeZoom: -2,
 });
 thatLayer.addTo(monoMap);
+L.latlngGraticule({
+    showLabel: true,
+    dashArray: [5, 5],
+    zoomInterval: [
+        {start: -4, end: 2, interval: 100}
+    ]
+}).addTo(monoMap);
