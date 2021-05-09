@@ -37,6 +37,7 @@ impl ChunkGenerator {
 mod tests {
     use super::ChunkGenerator;
     use crate::coord::SamplePos2D;
+    use crate::util::DerefSliceArrayVal;
     use assert_approx_eq::assert_approx_eq;
 
     #[test]
@@ -44,7 +45,12 @@ mod tests {
         let chunk_gen = ChunkGenerator::new(8676641231682978167);
         let results = chunk_gen
             .hill_noise
-            .sample2d(SamplePos2D { x: -656, z: 1084 }, 1, 1)
+            .sample2d(
+                SamplePos2D { x: -656, z: 1084 },
+                1,
+                1,
+                DerefSliceArrayVal([0.0; 1]),
+            )
             .sample_all();
         assert_approx_eq!(results[0], -523.681051)
     }

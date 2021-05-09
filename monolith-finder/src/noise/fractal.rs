@@ -18,16 +18,6 @@ impl<const I: usize> FractalNoise<I> {
         Self { octaves }
     }
 
-    #[cfg(feature = "std")]
-    pub fn begin_sampling(&self, cuboid: SamplingCuboid) -> SampleJobImpl<Box<[f64]>> {
-        SampleJobImpl {
-            noise: self.octaves.as_ref(),
-            applied_noises: 0,
-            results: vec![0.0; cuboid.len()].into_boxed_slice(),
-            cuboid,
-        }
-    }
-
     pub fn begin_sampling_into<T>(&self, cuboid: SamplingCuboid, results: T) -> SampleJobImpl<T>
     where
         T: DerefMut<Target = [f64]>,
@@ -141,6 +131,7 @@ mod tests {
     use crate::coord::SamplePos3D;
     use crate::noise::cuboid::SamplingCuboid;
     use crate::noise::fractal::{FractalNoise, SamplingJob};
+    use crate::util::DerefSliceArrayVal;
     use assert_approx_eq::assert_approx_eq;
     use java_rand::Random;
 
@@ -148,15 +139,18 @@ mod tests {
     fn basic_data_matches() {
         let noise: FractalNoise<16> = FractalNoise::with_random_octaves(&mut Random::new(15));
         let noises = noise
-            .begin_sampling(SamplingCuboid {
-                start_pos: SamplePos3D { x: 15, y: 52, z: 6 },
-                x_extent: 16,
-                y_extent: 4,
-                z_extent: 29,
-                x_scale: 0.512386,
-                y_scale: 198.1293,
-                z_scale: 9999.1283,
-            })
+            .begin_sampling_into(
+                SamplingCuboid {
+                    start_pos: SamplePos3D { x: 15, y: 52, z: 6 },
+                    x_extent: 16,
+                    y_extent: 4,
+                    z_extent: 29,
+                    x_scale: 0.512386,
+                    y_scale: 198.1293,
+                    z_scale: 9999.1283,
+                },
+                DerefSliceArrayVal([0.0; 16 * 4 * 29]),
+            )
             .sample_all();
         const EXPECTED: f64 = 10828.95355391629;
         let actual = noises[592];
@@ -199,15 +193,18 @@ mod tests {
     impl<const I: usize> RemainingVariationTest<I> {
         pub fn run(self) {
             let noise: FractalNoise<I> = FractalNoise::with_random_octaves(&mut Random::new(0));
-            let mut job = noise.begin_sampling(SamplingCuboid {
-                start_pos: SamplePos3D { x: 0, y: 0, z: 0 },
-                x_extent: 1,
-                y_extent: 1,
-                z_extent: 1,
-                x_scale: 1.0,
-                y_scale: 1.0,
-                z_scale: 1.0,
-            });
+            let mut job = noise.begin_sampling_into(
+                SamplingCuboid {
+                    start_pos: SamplePos3D { x: 0, y: 0, z: 0 },
+                    x_extent: 1,
+                    y_extent: 1,
+                    z_extent: 1,
+                    x_scale: 1.0,
+                    y_scale: 1.0,
+                    z_scale: 1.0,
+                },
+                DerefSliceArrayVal([0.0; 1]),
+            );
 
             for _ in 0..self.samples {
                 job.sample_once();
