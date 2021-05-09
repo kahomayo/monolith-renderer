@@ -45,7 +45,7 @@ var monoMap = L.map('leaflet-map', {
     minZoom: -16,
     crs: L.CRS.Simple,
 }).setView([0, 0], -6);
-var WasmLayer = L.GridLayer.extend({
+const WasmLayer = L.GridLayer.extend({
     createTile: function(coord, done) {
         var error;
         var tile = L.DomUtil.create('canvas', 'leaflet-tile');
@@ -55,21 +55,18 @@ var WasmLayer = L.GridLayer.extend({
 
         add_job({
             id: ++job_id,
-            seed: 8676641231682978167n,
+            seed: this.options.seed,
             coord: coord,
             tile: tile,
             on_done: () => done(error, tile)
         });
         return tile;
+    },
+    options: {
+        seed: 1n
     }
 });
-var thatLayer = new WasmLayer({
-    minZoom: -999,
-    minNativeZoom: -16,
-    maxNativeZoom: -2,
-    bounds: [[-30000000, -30000000], [30000000, 30000000]]
-});
-thatLayer.addTo(monoMap);
+var currentLayer = null;
 L.latlngGraticule({
     showLabel: true,
     dashArray: [4, 4],
@@ -86,3 +83,56 @@ L.latlngGraticule({
         {start: -16, end: 1, interval: 10000000},
     ]
 }).addTo(monoMap);
+currentLayer =  new WasmLayer({
+    minZoom: -999,
+    minNativeZoom: -16,
+    maxNativeZoom: -2,
+    bounds: [[-30000000, -30000000], [30000000, 30000000]],
+    seed: 8676641231682978167n
+});
+monoMap.addLayer(currentLayer);
+
+const seedBox = document.getElementById("seed-input");
+
+function chooseRandomSeed() {
+    return Math.floor(Math.random() * Math.pow(2, 48));
+}
+
+function showSeed(in_seed) {
+    const seed = in_seed & ((1n << 48n) - 1n);
+    console.log(seed);
+    if (currentLayer) {
+        monoMap.removeLayer(currentLayer);
+    }
+    currentLayer =  new WasmLayer({
+        seed: seedBox.value,
+        minZoom: -999,
+        minNativeZoom: -16,
+        maxNativeZoom: -2,
+        bounds: [[-30000000, -30000000], [30000000, 30000000]],
+        seed: seed,
+    });
+    monoMap.addLayer(currentLayer);
+}
+
+
+document.getElementById("seed-random-button").onclick = function() {
+    const seed = chooseRandomSeed();
+    seedBox.value = seed;
+    showSeed(BigInt(seed));
+}
+
+
+document.getElementById("show-seed-button").onclick = function () {
+    if (seedBox.value === "") {
+        seedBox.value = chooseRandomSeed();
+    }
+    var seed;
+    try {
+        seed = BigInt(seedBox.value);
+    } catch (e) {
+        alert("Seed must be a number!");
+        return;
+    }
+    showSeed(seed);
+}

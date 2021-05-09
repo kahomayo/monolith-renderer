@@ -1,5 +1,5 @@
 use crate::util::DerefSliceArray;
-use image::{ImageBuffer, Rgb, Rgba};
+use image::{ImageBuffer, Rgba};
 use monolith_finder::coord::{BlockPos2D, SamplePos2D};
 use monolith_finder::finder::{inspect_point, PointResult};
 use monolith_finder::worldgen::ChunkGenerator;
