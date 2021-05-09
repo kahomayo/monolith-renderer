@@ -19,38 +19,34 @@ struct SeededGenerator {
     generator: ChunkGenerator,
 }
 
-pub fn render_section_to_buf(
+fn get_pixel(is_monolith: bool) -> Rgba<u8> {
+    Rgba([0, if is_monolith { 255 } else { 0 }, 128, 255])
+}
+
+fn render_section_to_buf_blip(
     chunk_generator: &ChunkGenerator,
     results: &mut [u8; RESULT_LENGTH],
     start_pos: BlockPos2D,
+    stride: i32,
 ) {
     let mut image =
         ImageBuffer::from_raw(TILE_SIZE as u32, TILE_SIZE as u32, DerefSliceArray(results))
             .expect("Buffer size should match exactly");
     let start_pos: SamplePos2D = start_pos.into();
-    for fragment_x in 0..64u32 {
-        for fragment_z in 0..64u32 {
+    for point_x in 0..TILE_SIZE {
+        for point_z in 0..TILE_SIZE {
             let pos = SamplePos2D {
-                x: start_pos.x + (4 * fragment_x as i32),
-                z: start_pos.z + (4 * fragment_z as i32),
+                x: start_pos.x + (stride * point_x as i32),
+                z: start_pos.z + (stride * point_z as i32),
             };
-            let is_monolith = search_monoliths(chunk_generator, pos.into(), 4, 4);
-            for px_x in 0..4u32 {
-                for px_z in 0..4u32 {
-                    let is_monolith = is_monolith[(4 * px_x + px_z) as usize];
-                    image.put_pixel(
-                        fragment_x * 4 + px_x,
-                        fragment_z * 4 + px_z,
-                        Rgba([0, if is_monolith { 255 } else { 0 }, 128, 255]),
-                    );
-                }
-            }
+            let is_monolith = search_monoliths(chunk_generator, pos.into(), 1, 1)[0];
+            image.put_pixel(point_x as u32, point_z as u32, get_pixel(is_monolith));
         }
     }
 }
 
 // These should be UNSAFE, but wasm_bindgen doesn't let me mark them as such
-pub fn use_seed(seed: u64) {
+fn use_seed(seed: u64) {
     util::set_panic_hook();
     unsafe {
         if GLOBAL_GENERATOR
@@ -66,23 +62,6 @@ pub fn use_seed(seed: u64) {
     }
 }
 
-pub fn render_tile(block_x: i32, block_z: i32) -> *const u8 {
-    unsafe {
-        render_section_to_buf(
-            &GLOBAL_GENERATOR
-                .as_ref()
-                .expect("should have seeded")
-                .generator,
-            &mut GLOBAL_BUFFER,
-            BlockPos2D {
-                x: block_x,
-                z: block_z,
-            },
-        );
-    }
-    get_result_data()
-}
-
 #[wasm_bindgen]
 pub fn get_result_data() -> *const u8 {
     unsafe { GLOBAL_BUFFER.as_ptr() }
@@ -95,15 +74,30 @@ pub fn get_result_len() -> usize {
 
 #[wasm_bindgen]
 pub fn fill_tile(seed: u64, tile_x: i32, tile_y: i32, tile_z: i32) {
-    assert_eq!(tile_z, -2);
+    assert!(-16 <= tile_z && tile_z <= -2);
     use_seed(seed);
-    render_tile(tile_x * 1024, tile_y * 1024);
-    assert_eq!(255, unsafe { GLOBAL_BUFFER[3] });
+    let scale_factor = 1 << -(tile_z + 2);
+    let block_x = tile_x * 1024 * scale_factor;
+    let block_z = tile_y * 1024 * scale_factor;
+    unsafe {
+        render_section_to_buf_blip(
+            &GLOBAL_GENERATOR
+                .as_ref()
+                .expect("should have seeded")
+                .generator,
+            &mut GLOBAL_BUFFER,
+            BlockPos2D {
+                x: block_x,
+                z: block_z,
+            },
+            scale_factor,
+        );
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{render_section_to_buf, RESULT_LENGTH};
+    use crate::{render_section_to_buf_via_fragments, RESULT_LENGTH};
     use monolith_finder::coord::BlockPos2D;
     use monolith_finder::worldgen::ChunkGenerator;
 
@@ -111,7 +105,7 @@ mod tests {
     fn output_is_reasonable() {
         let gen = ChunkGenerator::new(8676641231682978167);
         let mut buf = [0; RESULT_LENGTH];
-        render_section_to_buf(&gen, &mut buf, BlockPos2D { x: -2624, z: 4343 });
+        render_section_to_buf_via_fragments(&gen, &mut buf, BlockPos2D { x: -2624, z: 4343 });
         assert_eq!(255, buf[1]);
     }
 }

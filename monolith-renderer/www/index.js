@@ -42,7 +42,7 @@ function add_job(desc) {
 
 var monoMap = L.map('leaflet-map', {
     maxZoom: 2,
-    minZoom: -4,
+    minZoom: -16,
     crs: L.CRS.Simple,
 }).setView([-3743, -3051] /*[0, 0]*/, 0);
 var WasmLayer = L.GridLayer.extend({
@@ -65,8 +65,9 @@ var WasmLayer = L.GridLayer.extend({
 });
 var thatLayer = new WasmLayer({
     minZoom: -999,
-    minNativeZoom: -2,
+    minNativeZoom: -16,
     maxNativeZoom: -2,
+    bounds: [[-30000000, -30000000], [30000000, 30000000]]
 });
 thatLayer.addTo(monoMap);
 L.latlngGraticule({
@@ -77,7 +78,11 @@ L.latlngGraticule({
         {start: 0, end: 1, interval: 100},
         {start: -1, end: 1, interval: 250},
         {start: -2, end: 1, interval: 500},
-        {start: -3, end: 1, interval: 1024},
-        {start: -4, end: 1, interval: 2048},
+        {start: -3, end: 1, interval: 1000},
+        {start: -4, end: 1, interval: 2500},
+        {start: -7, end: 1, interval: 10000},
+        {start: -10, end: 1, interval: 100000},
+        {start: -13, end: 1, interval: 1000000},
+        {start: -16, end: 1, interval: 10000000},
     ]
 }).addTo(monoMap);
