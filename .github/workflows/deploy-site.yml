@@ -21,6 +21,7 @@ jobs:
       run: wasm-pack build --dev
       working-directory: monolith-renderer
     - run: npm install
+      working-directory: monolith-renderer/www
     - name: Webpack
       run: npm run build
       working-directory: monolith-renderer/www
