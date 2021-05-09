@@ -3,20 +3,20 @@ use java_rand::Random;
 
 #[derive(Debug)]
 pub struct ChunkGenerator {
-    hill_noise: ScaledNoise,
-    depth_noise: ScaledNoise,
+    hill_noise: ScaledNoise<10>,
+    depth_noise: ScaledNoise<16>,
 }
 
 impl ChunkGenerator {
     pub fn new(seed: u64) -> ChunkGenerator {
         let mut random = Random::new(seed);
-        ScaledNoise::discard_noise(&mut random, 16);
-        ScaledNoise::discard_noise(&mut random, 16);
-        ScaledNoise::discard_noise(&mut random, 8);
-        ScaledNoise::discard_noise(&mut random, 4);
-        ScaledNoise::discard_noise(&mut random, 4);
-        let hill_noise = ScaledNoise::new(&mut random, 10, 1.0, 0.0);
-        let depth_noise = ScaledNoise::new(&mut random, 16, 100.0, 0.0);
+        ScaledNoise::<16>::discard_noise(&mut random);
+        ScaledNoise::<16>::discard_noise(&mut random);
+        ScaledNoise::<8>::discard_noise(&mut random);
+        ScaledNoise::<4>::discard_noise(&mut random);
+        ScaledNoise::<4>::discard_noise(&mut random);
+        let hill_noise = ScaledNoise::new(&mut random, 1.0, 0.0);
+        let depth_noise = ScaledNoise::new(&mut random, 100.0, 0.0);
 
         ChunkGenerator {
             hill_noise,
@@ -24,11 +24,11 @@ impl ChunkGenerator {
         }
     }
 
-    pub fn hill_noise(&self) -> &ScaledNoise {
+    pub fn hill_noise(&self) -> &ScaledNoise<10> {
         &self.hill_noise
     }
 
-    pub fn depth_noise(&self) -> &ScaledNoise {
+    pub fn depth_noise(&self) -> &ScaledNoise<16> {
         &self.depth_noise
     }
 }

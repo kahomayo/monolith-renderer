@@ -1,27 +1,24 @@
 use crate::noise::PerlinNoise;
 
 use crate::noise::cuboid::SamplingCuboid;
+use crate::util::generate_array;
+use core::borrow::{Borrow, BorrowMut};
+use core::ops::DerefMut;
 use java_rand::Random;
-use std::borrow::{Borrow, BorrowMut};
-use std::ops::DerefMut;
 
 #[derive(Debug)]
-pub struct FractalNoise {
-    octaves: Box<[PerlinNoise]>,
+pub struct FractalNoise<const I: usize> {
+    octaves: [PerlinNoise; I],
 }
 
-impl FractalNoise {
-    pub fn with_random_octaves(random: &mut Random, count: usize) -> Self {
-        let mut x = Vec::with_capacity(count);
-        for _ in 0..count {
-            x.push(PerlinNoise::with_random_permutations(random));
-        }
-        x.reverse();
-        Self {
-            octaves: x.into_boxed_slice(),
-        }
+impl<const I: usize> FractalNoise<I> {
+    pub fn with_random_octaves(random: &mut Random) -> Self {
+        let mut octaves = generate_array(|| PerlinNoise::with_random_permutations(random));
+        octaves.reverse();
+        Self { octaves }
     }
 
+    #[cfg(feature = "std")]
     pub fn begin_sampling(&self, cuboid: SamplingCuboid) -> SampleJobImpl<Box<[f64]>> {
         SampleJobImpl {
             noise: self.octaves.as_ref(),
@@ -29,6 +26,13 @@ impl FractalNoise {
             results: vec![0.0; cuboid.len()].into_boxed_slice(),
             cuboid,
         }
+    }
+
+    pub fn begin_sampling_into<T>(&self, cuboid: SamplingCuboid, results: T) -> SampleJobImpl<T>
+    where
+        T: DerefMut<Target = [f64]>,
+    {
+        SampleJobImpl::new(self.octaves.as_ref(), results, cuboid)
     }
 }
 
@@ -72,6 +76,7 @@ impl<'a, TResult: DerefMut<Target = [f64]>> SampleJobImpl<'a, TResult> {
             cuboid.len(),
             "The results slice must exactly match the given dimensions"
         );
+        debug_assert!(results.iter().all(|r| *r == 0.0));
 
         Self {
             noise,
@@ -141,7 +146,7 @@ mod tests {
 
     #[test]
     fn basic_data_matches() {
-        let noise = FractalNoise::with_random_octaves(&mut Random::new(15), 16);
+        let noise: FractalNoise<16> = FractalNoise::with_random_octaves(&mut Random::new(15));
         let noises = noise
             .begin_sampling(SamplingCuboid {
                 start_pos: SamplePos3D { x: 15, y: 52, z: 6 },
@@ -161,8 +166,7 @@ mod tests {
 
     #[test]
     fn remaining_variation_0_of_1() {
-        RemainingVariationTest {
-            octaves: 1,
+        RemainingVariationTest::<1> {
             samples: 0,
             expected: 1.0,
         }
@@ -171,8 +175,7 @@ mod tests {
 
     #[test]
     fn remaining_variation_1_of_1() {
-        RemainingVariationTest {
-            octaves: 1,
+        RemainingVariationTest::<1> {
             samples: 1,
             expected: 0.0,
         }
@@ -181,23 +184,21 @@ mod tests {
 
     #[test]
     fn remaining_variation_0_of_2() {
-        RemainingVariationTest {
-            octaves: 2,
+        RemainingVariationTest::<2> {
             samples: 0,
             expected: 3.0,
         }
         .run()
     }
 
-    struct RemainingVariationTest {
-        octaves: usize,
+    struct RemainingVariationTest<const I: usize> {
         samples: usize,
         expected: f64,
     }
 
-    impl RemainingVariationTest {
+    impl<const I: usize> RemainingVariationTest<I> {
         pub fn run(self) {
-            let noise = FractalNoise::with_random_octaves(&mut Random::new(0), self.octaves);
+            let noise: FractalNoise<I> = FractalNoise::with_random_octaves(&mut Random::new(0));
             let mut job = noise.begin_sampling(SamplingCuboid {
                 start_pos: SamplePos3D { x: 0, y: 0, z: 0 },
                 x_extent: 1,

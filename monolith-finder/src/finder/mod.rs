@@ -1,6 +1,7 @@
 use crate::coord::SamplePos2D;
 use crate::finder::search_constraint::{SearchConstraint, SearchResult};
 use crate::noise::SamplingJob;
+use crate::util::DerefSliceArrayVal;
 use crate::worldgen::ChunkGenerator;
 
 mod search_constraint;
@@ -31,9 +32,13 @@ pub struct PointResult {
 }
 
 pub fn inspect_point(chunk_gen: &ChunkGenerator, pos: SamplePos2D) -> PointResult {
-    let mut hill_job = chunk_gen.hill_noise().sample2d(pos, 1, 1);
+    let mut hill_job = chunk_gen
+        .hill_noise()
+        .sample2d(pos, 1, 1, DerefSliceArrayVal([0.0]));
     let is_candidate = search(&mut hill_job, &search_constraint::less_constraint(-512.0)).is_some();
-    let mut depth_job = chunk_gen.depth_noise().sample2d(pos, 1, 1);
+    let mut depth_job = chunk_gen
+        .depth_noise()
+        .sample2d(pos, 1, 1, DerefSliceArrayVal([0.0]));
     let is_land = search(
         &mut depth_job,
         &search_constraint::absolute_greater_equals(8000.0),
