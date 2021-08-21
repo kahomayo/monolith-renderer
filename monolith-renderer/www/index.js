@@ -84,7 +84,9 @@ new LatLngGraticule({
         {start: -10, end: 1, interval: 100000},
         {start: -13, end: 1, interval: 1000000},
         {start: -16, end: 1, interval: 10000000},
-    ]
+    ],
+    color: "#fff",
+    weight: 1,
 }).addTo(monoMap);
 currentLayer =  new WasmLayer({
     minZoom: -999,
