@@ -1,5 +1,3 @@
-import * as wasm from "monolith-renderer";
-import {memory} from "monolith-renderer/monolith_renderer_bg";
 import Worker from "worker-loader!./tile.worker.bootstrap.js"
 import L from "leaflet"
 import { LatLngGraticule } from "./leaflet.latlng-graticule.js"
@@ -105,12 +103,10 @@ function chooseRandomSeed() {
 
 function showSeed(in_seed) {
     const seed = in_seed & ((1n << 48n) - 1n);
-    console.log(seed);
     if (currentLayer) {
         monoMap.removeLayer(currentLayer);
     }
     currentLayer =  new WasmLayer({
-        seed: seedBox.value,
         minZoom: -999,
         minNativeZoom: -16,
         maxNativeZoom: -2,
