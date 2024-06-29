@@ -1,6 +1,9 @@
 import Worker from "worker-loader!./tile.worker.bootstrap.js"
 import L from "leaflet"
+import 'leaflet/dist/leaflet.css';
 import { LatLngGraticule } from "./leaflet.latlng-graticule.js"
+import "leaflet.fullscreen"
+import 'leaflet.fullscreen/Control.FullScreen.css'
 
 
 var job_id = 0;
@@ -45,6 +48,7 @@ var monoMap = L.map('leaflet-map', {
     maxZoom: 2,
     minZoom: -16,
     crs: L.CRS.Simple,
+    fullscreenControl: true,
 }).setView([0, 0], -6);
 const WasmLayer = L.GridLayer.extend({
     createTile: function(coord, done) {

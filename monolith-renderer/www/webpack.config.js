@@ -7,6 +7,16 @@ module.exports = {
     path: path.resolve(__dirname, "dist"),
     filename: "bootstrap.js",
   },
+  module: {
+    rules: [
+      {
+        test: /\.png$/,
+        use: [
+            'file-loader'
+        ],
+      },
+    ]
+  },
   mode: "development",
   plugins: [
     // Webpack is infuriating to deal with, it seems to want thousands of
@@ -19,11 +29,13 @@ module.exports = {
         'favicon.png',
         { from: 'node_modules/leaflet/LICENSE', to: 'LICENSE-Leaflet.txt' },
         { from: 'leaflet.latlng-graticule/LICENSE', to: 'LICENSE-leaflet.latlng-graticule.txt' },
-        { from: 'node_modules/leaflet/dist/leaflet.css', to: 'leaflet.css'},
       ],
     }),
   ],
   experiments: {
     futureDefaults: true, // to get any sort of WASM support
   },
+  stats: {
+    errorDetails: true
+  }
 };
