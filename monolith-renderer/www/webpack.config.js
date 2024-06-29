@@ -16,6 +16,7 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         'index.html',
+        'favicon.png',
         { from: 'node_modules/leaflet/LICENSE', to: 'LICENSE-Leaflet.txt' },
         { from: 'leaflet.latlng-graticule/LICENSE', to: 'LICENSE-leaflet.latlng-graticule.txt' },
         { from: 'node_modules/leaflet/dist/leaflet.css', to: 'leaflet.css'},
