@@ -106,7 +106,7 @@ monoMap.on("moveend", function (event) {
     coord_z_input.value = -Math.round(center.lat);
 })
 
-L.polyline([[-12_550_820, -12_550_820], [-12_550_820, 12_550_820], [12_550_820, 12_550_820], [12_550_820, -12_550_820], [-12_550_820, -12_550_820]], {color: 'red', fill: false}).addTo(monoMap);
+L.polyline([[-12_550_824, -12_550_824], [-12_550_824, 12_550_821], [12_550_821, 12_550_821], [12_550_821, -12_550_824], [-12_550_824, -12_550_824]], {color: 'red', fill: false}).addTo(monoMap);
 
 const seedBox = document.getElementById("seed-input");
 
