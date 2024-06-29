@@ -12,8 +12,14 @@
     <input id="seed-input" type="text"/>
     <button id="seed-random-button">Random</button>
     <button id="show-seed-button">Show seed</button>
-    <noscript>This page contains webassembly and javascript content, please enable javascript in your browser.</noscript>
-    <div id="leaflet-map" style="height: 500px;"></div>
+    <label for="coord-x">X:</label>
+    <input id="coord-x" type="number"/>
+    <label for="coord-z">Z:</label>
+    <input id="coord-z" type="number"/>
+    <button id="coord-go-to">Go</button>
+    <div id="leaflet-map" style="height: 500px;">
+    <noscript>The interactive map requires javascript to be displayed, please enable javascript in your browser.</noscript>
+    </div>
     <script src="./bootstrap.js"></script>
     <h2>Introduction</h2>
     <p>

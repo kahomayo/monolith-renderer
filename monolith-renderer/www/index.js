@@ -10,6 +10,8 @@ var job_id = 0;
 const jobs = []
 const running_jobs = { }
 const idle_workers = [Worker(), Worker(), Worker(), Worker(), Worker(), Worker()]
+const coord_x_input = document.getElementById("coord-x")
+const coord_z_input = document.getElementById("coord-z")
 
 idle_workers.forEach(w => {
     w.onmessage = e => {
@@ -98,6 +100,10 @@ currentLayer =  new WasmLayer({
     seed: 8676641231682978167n
 });
 monoMap.addLayer(currentLayer);
+monoMap.on("click", function (event) {
+    coord_x_input.value = Math.round(event.latlng.lng)
+    coord_z_input.value = Math.round(event.latlng.lat)
+})
 
 const seedBox = document.getElementById("seed-input");
 
@@ -141,3 +147,9 @@ document.getElementById("show-seed-button").onclick = function () {
     }
     showSeed(seed);
 }
+
+
+
+document.getElementById("coord-go-to").onclick = function () {
+    monoMap.setView([coord_z_input.value, coord_x_input.value], -2)
+};
