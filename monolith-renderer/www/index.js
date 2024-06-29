@@ -105,6 +105,8 @@ monoMap.on("click", function (event) {
     coord_z_input.value = -Math.round(event.latlng.lat);
 })
 
+L.polyline([[-12_550_820, -12_550_820], [-12_550_820, 12_550_820], [12_550_820, 12_550_820], [12_550_820, -12_550_820], [-12_550_820, -12_550_820]], {color: 'red', fill: false}).addTo(monoMap);
+
 const seedBox = document.getElementById("seed-input");
 
 function chooseRandomSeed() {
