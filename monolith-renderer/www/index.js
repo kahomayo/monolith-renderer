@@ -101,8 +101,8 @@ currentLayer =  new WasmLayer({
 });
 monoMap.addLayer(currentLayer);
 monoMap.on("click", function (event) {
-    coord_x_input.value = Math.round(event.latlng.lng)
-    coord_z_input.value = Math.round(event.latlng.lat)
+    coord_x_input.value = Math.round(event.latlng.lng);
+    coord_z_input.value = -Math.round(event.latlng.lat);
 })
 
 const seedBox = document.getElementById("seed-input");
@@ -151,5 +151,5 @@ document.getElementById("show-seed-button").onclick = function () {
 
 
 document.getElementById("coord-go-to").onclick = function () {
-    monoMap.setView([coord_z_input.value, coord_x_input.value], -2)
+    monoMap.setView([-coord_z_input.value, coord_x_input.value], -2)
 };
