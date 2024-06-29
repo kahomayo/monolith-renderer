@@ -26,7 +26,7 @@ jobs:
       run: npm run build
       working-directory: monolith-renderer/www
     - name: Deploy
-      uses: crazy-max/ghaction-github-pages@v2
+      uses: crazy-max/ghaction-github-pages@v4.0.0
       with:
         target_branch: gh-pages
         build_dir: monolith-renderer/www/dist
