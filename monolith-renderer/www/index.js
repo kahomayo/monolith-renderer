@@ -100,9 +100,10 @@ currentLayer =  new WasmLayer({
     seed: 8676641231682978167n
 });
 monoMap.addLayer(currentLayer);
-monoMap.on("click", function (event) {
-    coord_x_input.value = Math.round(event.latlng.lng);
-    coord_z_input.value = -Math.round(event.latlng.lat);
+monoMap.on("moveend", function (event) {
+    const center = monoMap.getCenter()
+    coord_x_input.value = Math.round(center.lng);
+    coord_z_input.value = -Math.round(center.lat);
 })
 
 L.polyline([[-12_550_820, -12_550_820], [-12_550_820, 12_550_820], [12_550_820, 12_550_820], [12_550_820, -12_550_820], [-12_550_820, -12_550_820]], {color: 'red', fill: false}).addTo(monoMap);
