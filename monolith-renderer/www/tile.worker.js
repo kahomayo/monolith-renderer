@@ -1,5 +1,5 @@
 import * as wasm from "monolith-renderer";
-import { memory } from "monolith-renderer/monolith_renderer_bg"
+import { memory } from "monolith-renderer/monolith_renderer_bg.wasm"
 
 const result_ptr = wasm.get_result_data();
 const result_len = wasm.get_result_len();

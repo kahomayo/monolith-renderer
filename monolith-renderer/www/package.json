@@ -19,14 +19,14 @@
   "author": "kahomayo <kahomayo@pm.me>",
   "license": "(MIT OR Apache-2.0)",
   "dependencies": {
-    "leaflet": "^1.7.1",
+    "leaflet": "^1.9.4",
     "monolith-renderer": "file:../pkg"
   },
   "devDependencies": {
-    "copy-webpack-plugin": "^5.0.0",
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.1.0",
-    "webpack-dev-server": "^3.1.5",
+    "copy-webpack-plugin": "^12.0.2",
+    "webpack": "~5.92.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.4",
     "worker-loader": "^3.0.8"
   }
 }
