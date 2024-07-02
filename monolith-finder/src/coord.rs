@@ -36,6 +36,15 @@ impl From<BlockPos2D> for SamplePos2D {
     }
 }
 
+impl From<SamplePos2D> for BlockPos2D {
+    fn from(pos: SamplePos2D) -> Self {
+        Self {
+            x: pos.x * 4,
+            z: pos.z * 4,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct SamplePos3D {
     pub x: i32,

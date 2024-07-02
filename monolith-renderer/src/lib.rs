@@ -1,7 +1,7 @@
 #![no_std]
 
 use monolith_finder::coord::{BlockPos2D, SamplePos2D};
-use monolith_finder::finder::{inspect_point, PointResult};
+use monolith_finder::finder::{FarLandsKind, inspect_point, PointResult};
 use monolith_finder::worldgen::ChunkGenerator;
 use wasm_bindgen::prelude::*;
 
@@ -13,7 +13,9 @@ type Color = [u8; 4];
 const COLOR_MONOLITH: Color = [255, 0, 0, 255];
 const COLOR_LAND: Color = [141, 179, 96, 255];
 const COLOR_WATER: Color = [0, 0, 86, 255];
-const COLOR_CANDIDATE: Color = [0, 0, 64, 255];
+const COLOR_FAR_LANDS: Color = [127, 51, 0, 255];
+const COLOR_CORNER_FAR_LANDS: Color = [255, 106, 0, 255];
+const COLOR_OOB: Color=[0, 0, 0, 0];
 
 static mut GLOBAL_GENERATOR: Option<SeededGenerator> = None;
 static mut GLOBAL_BUFFER: [u8; RESULT_LENGTH] = [0; RESULT_LENGTH];
@@ -25,16 +27,12 @@ struct SeededGenerator {
 
 fn get_pixel(point_result: PointResult) -> Color {
     match point_result {
-        PointResult {
-            is_candidate: true,
-            is_land: true,
-        } => COLOR_MONOLITH,
-        PointResult {
-            is_candidate: true,
-            is_land: false,
-        } => COLOR_CANDIDATE,
-        PointResult { is_land: true, .. } => COLOR_LAND,
-        PointResult { is_land: false, .. } => COLOR_WATER,
+        PointResult::Land => COLOR_LAND,
+        PointResult::Water => COLOR_WATER,
+        PointResult::Monolith => COLOR_MONOLITH,
+        PointResult::FarLands(FarLandsKind::Corner) => COLOR_CORNER_FAR_LANDS,
+        PointResult::FarLands(_) => COLOR_FAR_LANDS,
+        PointResult::OOB => COLOR_OOB,
     }
 }
 
@@ -113,7 +111,8 @@ pub fn fill_tile(seed: u64, tile_x: i32, tile_y: i32, tile_z: i32) {
 #[cfg(test)]
 mod tests {
     use crate::{render_section_to_buf_blip, RESULT_LENGTH};
-    use monolith_finder::coord::BlockPos2D;
+    use monolith_finder::coord::{BlockPos2D, SamplePos2D};
+    use monolith_finder::finder::{FarLandsKind, inspect_point, PointResult};
     use monolith_finder::worldgen::ChunkGenerator;
 
     #[test]
@@ -122,5 +121,19 @@ mod tests {
         let mut buf = [0; RESULT_LENGTH];
         render_section_to_buf_blip(&gen, &mut buf, BlockPos2D { x: -2624, z: 4343 }, 1);
         assert_eq!(255, buf[3]);
+    }
+
+    #[test]
+    fn oob_is_found() {
+        let gen = ChunkGenerator::new(1);
+        let point_result = inspect_point(&gen, BlockPos2D{x: 33_000_000, z: 33_000_000}.into());
+        assert_eq!(point_result, PointResult::OOB);
+    }
+
+    #[test]
+    fn far_lands_is_found() {
+        let gen = ChunkGenerator::new(1);
+        let point_result = inspect_point(&gen, BlockPos2D{x: 20_000_000, z: 0}.into());
+        assert_eq!(point_result, PointResult::FarLands(FarLandsKind::X));
     }
 }

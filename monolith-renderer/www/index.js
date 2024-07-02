@@ -92,24 +92,6 @@ new LatLngGraticule({
     color: "#fff",
     weight: 1,
 }).addTo(monoMap);
-currentLayer =  new WasmLayer({
-    minZoom: -999,
-    minNativeZoom: -16,
-    maxNativeZoom: -2,
-    bounds: [[-30000000, -30000000], [30000000, 30000000]],
-    seed: 8676641231682978167n
-});
-monoMap.addLayer(currentLayer);
-monoMap.on("moveend", function (event) {
-    const center = monoMap.getCenter()
-    coord_x_input.value = Math.round(center.lng);
-    coord_z_input.value = -Math.round(center.lat);
-})
-
-L.polyline([[-12_550_824, -12_550_824], [-12_550_824, 12_550_821], [12_550_821, 12_550_821], [12_550_821, -12_550_824], [-12_550_824, -12_550_824]], {color: 'red', fill: false}).addTo(monoMap);
-
-const seedBox = document.getElementById("seed-input");
-
 function chooseRandomSeed() {
     return Math.floor(Math.random() * Math.pow(2, 48));
 }
@@ -123,11 +105,23 @@ function showSeed(in_seed) {
         minZoom: -999,
         minNativeZoom: -16,
         maxNativeZoom: -2,
-        bounds: [[-30000000, -30000000], [30000000, 30000000]],
+        bounds: [[-33000000, -33000000], [33000000, 33000000]],
         seed: seed,
     });
     monoMap.addLayer(currentLayer);
 }
+
+monoMap.on("moveend", function () {
+    const center = monoMap.getCenter()
+    coord_x_input.value = Math.round(center.lng);
+    coord_z_input.value = -Math.round(center.lat);
+})
+
+const seedBox = document.getElementById("seed-input");
+
+const seed = chooseRandomSeed();
+seedBox.value = seed;
+showSeed(BigInt(seed));
 
 
 document.getElementById("seed-random-button").onclick = function() {

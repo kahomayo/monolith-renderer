@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-monolith-finder = { path = "../monolith-finder", default_features = false }
+monolith-finder = { path = "../monolith-finder", default-features = false }
 wasm-bindgen = "0.2.73"
 
 [dev-dependencies]
