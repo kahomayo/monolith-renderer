@@ -1,22 +1,22 @@
-use crate::worldgen::ScaledNoise;
+use crate::worldgen::ScaledFractalNoise;
 use java_rand::Random;
 
 #[derive(Debug)]
 pub struct ChunkGenerator {
-    hill_noise: ScaledNoise<10>,
-    depth_noise: ScaledNoise<16>,
+    hill_noise: ScaledFractalNoise<10>,
+    depth_noise: ScaledFractalNoise<16>,
 }
 
 impl ChunkGenerator {
     pub fn new(seed: u64) -> ChunkGenerator {
         let mut random = Random::new(seed);
-        ScaledNoise::<16>::discard_noise(&mut random);
-        ScaledNoise::<16>::discard_noise(&mut random);
-        ScaledNoise::<8>::discard_noise(&mut random);
-        ScaledNoise::<4>::discard_noise(&mut random);
-        ScaledNoise::<4>::discard_noise(&mut random);
-        let hill_noise = ScaledNoise::new(&mut random, 1.0, 0.0);
-        let depth_noise = ScaledNoise::new(&mut random, 100.0, 0.0);
+        ScaledFractalNoise::<16>::discard_noise(&mut random);
+        ScaledFractalNoise::<16>::discard_noise(&mut random);
+        ScaledFractalNoise::<8>::discard_noise(&mut random);
+        ScaledFractalNoise::<4>::discard_noise(&mut random);
+        ScaledFractalNoise::<4>::discard_noise(&mut random);
+        let hill_noise = ScaledFractalNoise::new(&mut random, 1.0, 0.0);
+        let depth_noise = ScaledFractalNoise::new(&mut random, 100.0, 0.0);
 
         ChunkGenerator {
             hill_noise,
@@ -24,11 +24,11 @@ impl ChunkGenerator {
         }
     }
 
-    pub fn hill_noise(&self) -> &ScaledNoise<10> {
+    pub fn hill_noise(&self) -> &ScaledFractalNoise<10> {
         &self.hill_noise
     }
 
-    pub fn depth_noise(&self) -> &ScaledNoise<16> {
+    pub fn depth_noise(&self) -> &ScaledFractalNoise<16> {
         &self.depth_noise
     }
 }

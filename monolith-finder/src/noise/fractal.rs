@@ -6,6 +6,9 @@ use core::borrow::{Borrow, BorrowMut};
 use core::ops::DerefMut;
 use java_rand::Random;
 
+/// Noise generator that calculates noises by combining several octaves of perlin noise at exponentially decreasing intensity
+///
+/// I: Number of octaves
 #[derive(Debug)]
 pub struct FractalNoise<const I: usize> {
     octaves: [PerlinNoise; I],

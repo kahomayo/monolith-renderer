@@ -73,7 +73,7 @@ impl PerlinNoise {
         let mut lerp1 = 0.0;
         let mut lerp2 = 0.0;
         let mut lerp3 = 0.0;
-        let mut last_cube_y = Option::None;
+        let mut last_cube_y = None;
         for x_idx in 0..cuboid.x_extent {
             for z_idx in 0..cuboid.z_extent {
                 for y_idx in 0..cuboid.y_extent {
@@ -94,8 +94,8 @@ impl PerlinNoise {
                     // The value is only recalculated if cube_y changes, but the calculation also depends on y_pos.
                     // This means that vertically overlapping cuboids can have different values in their overlaps.
                     if y_idx == 0 || Some(cube_y) != last_cube_y {
-                        last_cube_y = Option::Some(cube_y);
-                        let big_a = self.permutations[cube_x as usize] as usize + cube_y;
+                        last_cube_y = Some(cube_y);
+                        let big_a = self.permutations[cube_x] as usize + cube_y;
                         let big_aa = self.permutations[big_a] as usize + cube_z;
                         let big_ab = self.permutations[big_a + 1] as usize + cube_z;
                         let big_b = self.permutations[cube_x + 1] as usize + cube_y;

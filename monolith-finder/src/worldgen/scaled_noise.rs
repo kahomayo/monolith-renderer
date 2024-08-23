@@ -4,14 +4,20 @@ use crate::noise::{FractalNoise, SamplingCuboid};
 use core::ops::DerefMut;
 use java_rand::Random;
 
+/// A fractal noise generator that always scales sampling cuboids by fixed
+/// constants.
+///
+/// This is just a convenience struct and doesn't correspond to an actual class in the JARs.
+///
+/// I: Number of octaves
 #[derive(Debug)]
-pub struct ScaledNoise<const I: usize> {
+pub struct ScaledFractalNoise<const I: usize> {
     noise: FractalNoise<I>,
     scale_x_z: f64,
     scale_y: f64,
 }
 
-impl<const I: usize> ScaledNoise<I> {
+impl<const I: usize> ScaledFractalNoise<I> {
     pub fn new(random: &mut Random, scale_x_z: f64, scale_y: f64) -> Self {
         Self {
             noise: FractalNoise::with_random_octaves(random),
