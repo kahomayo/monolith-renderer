@@ -1,7 +1,7 @@
 import Worker from "worker-loader!./tile.worker.bootstrap.js"
 import L from "leaflet"
 import 'leaflet/dist/leaflet.css';
-import { LatLngGraticule } from "./leaflet.latlng-graticule.js"
+import {LatLngGraticule} from "./leaflet.latlng-graticule.js"
 import "leaflet.fullscreen"
 import 'leaflet.fullscreen/Control.FullScreen.css'
 
@@ -12,6 +12,12 @@ const running_jobs = { }
 const idle_workers = [Worker(), Worker(), Worker(), Worker(), Worker(), Worker()]
 const coord_x_input = document.getElementById("coord-x")
 const coord_z_input = document.getElementById("coord-z")
+
+const params = new URLSearchParams(window.location.search);
+const initial_x = params.get("x") || 0;
+const initial_z = params.get("z") || 0;
+const initial_zoom = params.get("zoom") || -6;
+
 
 idle_workers.forEach(w => {
     w.onmessage = e => {
@@ -46,17 +52,17 @@ function add_job(desc) {
     try_start_job();
 }
 
-var monoMap = L.map('leaflet-map', {
+const monoMap = L.map('leaflet-map', {
     maxZoom: 2,
     minZoom: -16,
     crs: L.CRS.Simple,
     fullscreenControl: true,
-}).setView([0, 0], -6);
+}).setView([-initial_z, initial_x], initial_zoom);
 const WasmLayer = L.GridLayer.extend({
     createTile: function(coord, done) {
-        var error;
-        var tile = L.DomUtil.create('canvas', 'leaflet-tile');
-        var size = this.getTileSize();
+        let error;
+        const tile = L.DomUtil.create('canvas', 'leaflet-tile');
+        const size = this.getTileSize();
         tile.width = size.x;
         tile.height = size.y;
 
@@ -73,7 +79,7 @@ const WasmLayer = L.GridLayer.extend({
         seed: 1n
     }
 });
-var currentLayer = null;
+let currentLayer = null;
 new LatLngGraticule({
     showLabel: true,
     dashArray: [4, 4],
@@ -109,19 +115,53 @@ function showSeed(in_seed) {
         seed: seed,
     });
     monoMap.addLayer(currentLayer);
+
+    updatePermalink();
+}
+
+const permalinkBox = document.getElementById("permalink");
+
+function getState() {
+    const center = monoMap.getCenter();
+    return {
+        "seed": seedBox.value,
+        "x": Math.round(center.lng),
+        "z": -Math.round(center.lat),
+        "zoom": monoMap.getZoom(),
+    }
+}
+
+function updatePermalink() {
+    const state = getState();
+    const newUrl = new URLSearchParams();
+    newUrl.set("seed", state.seed.toString())
+    newUrl.set("x", state.x.toString());
+    newUrl.set("z", state.z.toString());
+    newUrl.set("zoom", state.zoom.toString());
+    permalinkBox.value = window.location.origin + window.location.pathname + "?" + newUrl.toString();
 }
 
 monoMap.on("moveend", function () {
     const center = monoMap.getCenter()
     coord_x_input.value = Math.round(center.lng);
     coord_z_input.value = -Math.round(center.lat);
+    updatePermalink();
 })
+
+coord_x_input.value = initial_x;
+coord_z_input.value = initial_z;
 
 const seedBox = document.getElementById("seed-input");
 
-const seed = chooseRandomSeed();
-seedBox.value = seed;
-showSeed(BigInt(seed));
+if (params.has("seed")) {
+    const seed = params.get("seed")
+    seedBox.value = seed;
+    showSeed(BigInt(seed))
+} else {
+    const seed = chooseRandomSeed();
+    seedBox.value = seed;
+    showSeed(BigInt(seed));
+}
 
 
 document.getElementById("seed-random-button").onclick = function() {
@@ -135,7 +175,7 @@ document.getElementById("show-seed-button").onclick = function () {
     if (seedBox.value === "") {
         seedBox.value = chooseRandomSeed();
     }
-    var seed;
+    let seed;
     try {
         seed = BigInt(seedBox.value);
     } catch (e) {
@@ -150,3 +190,19 @@ document.getElementById("show-seed-button").onclick = function () {
 document.getElementById("coord-go-to").onclick = function () {
     monoMap.setView([-coord_z_input.value, coord_x_input.value], -2)
 };
+
+document.getElementById("copy-permalink-button").addEventListener("click", async function () {
+    await navigator.clipboard.writeText(permalinkBox.value);
+});
+
+if (!navigator.canShare) {
+    document.getElementById("share-button").remove();
+} else {
+    document.getElementById("share-button").addEventListener("click", async function() {
+        await navigator.share({
+            "title": "Map link",
+            "url": permalinkBox.value,
+        })
+    })
+}
+
